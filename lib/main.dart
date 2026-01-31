@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skillsync/screens/notifications/notifications_screen.dart';
 
 // SCREEN IMPORTS
 //auth
@@ -19,6 +20,7 @@ import 'screens/onboarding/onboarding_current_skills_screen.dart';
 import 'screens/onboarding/onboarding_new_skills_screen.dart';
 //profile
 import 'screens/profile/profile_screen.dart';
+import 'screens/profile/user_profile_screen.dart';
 //splash
 import 'screens/splash/splash_screen.dart';
 
@@ -55,8 +57,9 @@ class SkillSyncApp extends StatelessWidget {
         '/home': (context) => HomeScreen(),
         '/matching': (context) => MatchingScreen(),
         '/profile': (context) => ProfileScreen(),
+        '/user_profile': (context) => UserProfileScreen(),
         '/chat': (context) => const ChatScreen(chatName: 'Fake User'),
-
+        '/notifications': (context) => const NotificationsScreen(),
         '/community': (context) => CommunityScreen(),
         '/explore': (context) => ExploreScreen(),
 

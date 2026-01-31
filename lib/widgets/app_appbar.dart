@@ -9,7 +9,7 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
     super.key,
     required this.title,
     this.actions,
-    this.showBack = false,
+    this.showBack = true,
   });
 
   @override
@@ -18,6 +18,9 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: Colors.black,
       elevation: 0,
       centerTitle: true,
+ 
+      automaticallyImplyLeading: showBack,
+
       leading: showBack
           ? IconButton(
               icon: const Icon(Icons.arrow_back),

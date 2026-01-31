@@ -133,16 +133,16 @@ class HomeScreen extends StatelessWidget {
               // already on home
               break;
             case 1:
-              Navigator.pushReplacementNamed(context, '/explore');
-              break;
-            case 2:
-              Navigator.pushReplacementNamed(context, '/community');
-              break;
-            case 3:
               Navigator.pushReplacementNamed(context, '/notifications');
               break;
+            case 2:
+              Navigator.pushReplacementNamed(context, '/explore');
+              break;
+            case 3:
+              Navigator.pushReplacementNamed(context, '/community');
+              break;
             case 4:
-              Navigator.pushReplacementNamed(context, '/profile');
+              Navigator.pushReplacementNamed(context, '/user_profile');
               break;
           }
         },
