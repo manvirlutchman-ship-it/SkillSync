@@ -1,6 +1,7 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:skillsync/screens/notifications/notifications_screen.dart';
-
+import 'firebase_options.dart';
 // SCREEN IMPORTS
 //auth
 import 'screens/auth/login_screen.dart';
@@ -24,7 +25,12 @@ import 'screens/profile/user_profile_screen.dart';
 //splash
 import 'screens/splash/splash_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  //CONNECT APP TO SKILLSYNC PROJECT ON FIREBASE
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const SkillSyncApp());
 }
 
