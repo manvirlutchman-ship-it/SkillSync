@@ -1,5 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart'; 
-//MODEL IMPORTS
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+// MODEL IMPORTS
 import 'package:skillsync/models/comment_model.dart';
 import 'package:skillsync/models/conversation_model.dart';
 import 'package:skillsync/models/like_model.dart';
@@ -13,10 +14,15 @@ import 'package:skillsync/models/userskill_model.dart';
 class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // 1. USER PROFILE LOGIC
+  // --- 1. USER PROFILE LOGIC ---
+
   Future<UserModel?> getUserProfile(String userId) async {
+    print("!!! REQUESTING ID: '[$userId]' !!!");
     try {
-      DocumentSnapshot doc = await _db.collection('User').doc(userId).get();
+      DocumentSnapshot doc = await _db
+          .collection('User')
+          .doc(userId.trim())
+          .get();
       if (doc.exists) return UserModel.fromFirestore(doc);
       return null;
     } catch (e) {
@@ -25,81 +31,89 @@ class DatabaseService {
     }
   }
 
-  Future<void> updateUser(String userId, Map<String, dynamic> data) {
-    return _db.collection('User').doc(userId).update(data);
+  // Matches Register Screen Logic
+  Future<void> createUserProfile(String userId, String email) async {
+    try {
+      // Aligned with your UserModel.toMap() keys
+      await _db.collection('User').doc(userId).set({
+        'username': email,
+        'first_name': '',
+        'last_name': '',
+        'user_bio': '',
+        'profile_picture_url': '',
+        'profile_banner_url': '',
+        'date_of_birth': Timestamp.fromDate(
+          DateTime(2000, 1, 1),
+        ), // Default DOB
+      });
+    } catch (e) {
+      print("Error creating user profile: $e");
+      rethrow;
+    }
   }
 
-  Future<List<UserModel>> searchUsers(String query) async {
-    var snapshot = await _db.collection('User')
-        .where('username', isGreaterThanOrEqualTo: query)
-        .get();
-    return snapshot.docs.map((doc) => UserModel.fromFirestore(doc)).toList();
+  // --- 2. USERSKILL LOGIC (Critical for Onboarding) ---
+
+  Future<void> saveUserSkills({
+    required String userId,
+    required List<String> skills,
+    required String type, // "teaching" or "learning"
+  }) async {
+    final batch = _db.batch();
+
+    for (var skillId in skills) {
+      DocumentReference docRef = _db.collection('UserSkill').doc();
+
+      // Aligned with your UserSkillModel.toMap() keys
+      batch.set(docRef, {
+        'skill_id': _db.doc('Skill/$skillId'),
+        'user_id': _db.doc('User/$userId'),
+        'teaching_or_learning': type,
+        'user_skill_rating': 1, // Default rating for new skills
+      });
+    }
+    return batch.commit();
   }
 
-  // 2. SOCIAL LOGIC (POSTS, LIKES, COMMENTS)
+  Future<List<UserSkillModel>> getUserSkills(String userId) async {
+    try {
+      print("!!! QUERYING SKILLS FOR USER: /User/$userId !!!");
+
+      var snapshot = await _db
+          .collection('UserSkill')
+          .where('user_id', isEqualTo: _db.doc('User/$userId'))
+          .get();
+
+      print("!!! SKILLS FOUND: ${snapshot.docs.length} !!!");
+
+      return snapshot.docs
+          .map((doc) => UserSkillModel.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      print("!!! ERROR FETCHING SKILLS: $e !!!");
+      return [];
+    }
+  }
+  // --- 3. SOCIAL & MESSAGING (Model Integrated) ---
+
   Future<void> createPost(PostModel post) {
     return _db.collection('Post').add(post.toMap());
   }
 
-  Future<void> likePost(String userId, String postId) {
-    final like = LikeModel(
-      id: '', 
-      createdAt: DateTime.now(),
-      postId: postId,
-      userId: userId,
-    );
-    return _db.collection('Like').add(like.toMap());
-  }
-
-  Future<bool> hasUserLikedPost(String userId, String postId) async {
-    var snapshot = await _db.collection('Like')
-        .where('user_id', isEqualTo: _db.doc('User/$userId'))
-        .where('post_id', isEqualTo: _db.doc('Post/$postId'))
-        .get();
-    return snapshot.docs.isNotEmpty;
-  }
-
-  Future<void> addComment(CommentModel comment) {
-    return _db.collection('Comment').add(comment.toMap());
-  }
-
-  Stream<List<CommentModel>> getComments(String postId) {
-    return _db
-        .collection('Comment')
-        .where('post_id', isEqualTo: _db.doc('Post/$postId'))
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => CommentModel.fromFirestore(doc))
-            .toList());
-  }
-
-  // 3. MESSAGING AND MATCHES [REAL-TIME]
   Stream<List<MessageModel>> getMessages(String conversationId) {
-    return _db.collection('Message') 
-        .where('conversation_id', isEqualTo: _db.doc('Conversation/$conversationId'))
+    return _db
+        .collection('Message')
+        .where(
+          'conversation_id',
+          isEqualTo: _db.doc('Conversation/$conversationId'),
+        )
         .orderBy('sent_at', descending: false)
         .snapshots()
-        .map((snap) => snap.docs.map((doc) => MessageModel.fromFirestore(doc)).toList());
+        .map(
+          (snap) =>
+              snap.docs.map((doc) => MessageModel.fromFirestore(doc)).toList(),
+        );
   }
 
-  Stream<List<NotificationModel>> getNotifications(String userId) {
-    return _db.collection('Notification')
-        .where('user_id', isEqualTo: _db.doc('User/$userId'))
-        .orderBy('created_at', descending: true)
-        .snapshots()
-        .map((snap) => snap.docs.map((doc) => NotificationModel.fromFirestore(doc)).toList());
-  }
-
-  // 4. USERSKILL LOGIC
-  Future<void> addUserSkill(UserSkillModel userSkill) {
-    return _db.collection('UserSkill').add(userSkill.toMap());
-  }
-
-  Future<List<UserSkillModel>> getUserSkills(String userId) async {
-    var snapshot = await _db.collection('UserSkill')
-        .where('user_id', isEqualTo: _db.doc('User/$userId'))
-        .get();
-    return snapshot.docs.map((doc) => UserSkillModel.fromFirestore(doc)).toList();
-  }
-
-} 
+  // Add more methods as needed using the same .toMap() pattern
+}

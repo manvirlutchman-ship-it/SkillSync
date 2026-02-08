@@ -7,126 +7,169 @@ class NotificationsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor, // Apple Light Gray (F5F5F7)
       appBar: const AppAppBar(
         title: 'Notifications',
         showBack: false,
       ),
-
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-
-            // 🧩 Fake Notification 1
-            _NotificationCard(
-              avatarColor: Colors.blue,
-              username: 'FlutterDev',
-              message: 'Your post on Flutter tips got 5 new likes!',
-              timeAgo: '2h ago',
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        children: [
+          // Section Title (Apple Style)
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 16),
+            child: Text(
+              'RECENT',
+              style: TextStyle(
+                color: colorScheme.secondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2,
+              ),
             ),
+          ),
 
-            const SizedBox(height: 12),
+          // 🧩 Fake Notification 1: Like
+          _NotificationCard(
+            icon: Icons.favorite_rounded,
+            iconColor: Colors.redAccent,
+            username: 'FlutterDev',
+            message: 'Your post on Flutter tips got 5 new likes!',
+            timeAgo: '2h ago',
+            isUnread: true,
+          ),
 
-            // 🧩 Fake Notification 2
-            _NotificationCard(
-              avatarColor: Colors.purple,
-              username: 'SkillSync',
-              message: 'You have a new connection request.',
-              timeAgo: '5h ago',
-            ),
+          const SizedBox(height: 12),
 
-          ],
-        ),
+          // 🧩 Fake Notification 2: Connection
+          _NotificationCard(
+            icon: Icons.person_add_rounded,
+            iconColor: Colors.blueAccent,
+            username: 'SkillSync Team',
+            message: 'You have a new connection request from Sarah.',
+            timeAgo: '5h ago',
+          ),
+
+          const SizedBox(height: 12),
+
+          // 🧩 Fake Notification 3: Achievement
+          _NotificationCard(
+            icon: Icons.emoji_events_rounded,
+            iconColor: Colors.orangeAccent,
+            username: 'System',
+            message: 'Congrats! You reached Level 2 in Dart proficiency.',
+            timeAgo: 'Yesterday',
+          ),
+        ],
       ),
 
       // 🔽 Bottom nav
       bottomNavigationBar: AppBottomNav(
-        currentIndex: 1, // Notifications tab
+        currentIndex: 1, // Alerts/Notifications tab
         onTap: (index) {
-          switch (index) {
-            case 0:
-              Navigator.pushReplacementNamed(context, '/home');
-              break;
-            case 1:
-              // already here
-              break;
-            case 2:
-              Navigator.pushReplacementNamed(context, '/explore');
-              break;
-            case 3:
-              Navigator.pushReplacementNamed(context, '/community');
-              break;
-            case 4:
-              Navigator.pushReplacementNamed(context, '/user_profile');
-              break;
-          }
+          if (index == 1) return;
+          final routes = ['/home', '/notifications', '/explore', '/community', '/user_profile'];
+          Navigator.pushReplacementNamed(context, routes[index]);
         },
       ),
     );
   }
 }
 
-// 🧩 Notification Card Widget
+// 🧩 Premium Notification Card Widget
 class _NotificationCard extends StatelessWidget {
-  final Color avatarColor;
+  final IconData icon;
+  final Color iconColor;
   final String username;
   final String message;
   final String timeAgo;
+  final bool isUnread;
 
   const _NotificationCard({
-    super.key,
-    required this.avatarColor,
+    required this.icon,
+    required this.iconColor,
     required this.username,
     required this.message,
     required this.timeAgo,
+    this.isUnread = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade400),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16), // Consistent Squircle
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: avatarColor,
+          // Icon Circle instead of just a color
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  username,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      username,
+                      style: TextStyle(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                    if (isUnread)
+                      Container(
+                        height: 8,
+                        width: 8,
+                        decoration: const BoxDecoration(
+                          color: Colors.blueAccent,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(
                   message,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Colors.black87,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: colorScheme.primary.withOpacity(0.8),
+                    height: 1.3,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 Text(
                   timeAgo,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: Colors.black54,
+                    color: colorScheme.secondary,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],

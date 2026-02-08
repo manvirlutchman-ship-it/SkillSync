@@ -1,14 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserModel {
-  final String id;                  // The document ID from Firestore (Auth UID)
-  final DateTime dateOfBirth;       // Converted from Timestamp
-  final String firstName;           // "Alex"
-  final String lastName;            // "Perera"
-  final String profileBannerUrl;    // "https://example.com/..."
-  final String profilePictureUrl;   // "https://example.com/..."
-  final String userBio;             // "Software engineering student..."
-  final String username;           // "alex.perera@example.com"
+  final String id; // The document ID from Firestore (Auth UID)
+  final DateTime dateOfBirth; // Converted from Timestamp
+  final String firstName; // "Alex"
+  final String lastName; // "Perera"
+  final String profileBannerUrl; // "https://example.com/..."
+  final String profilePictureUrl; // "https://example.com/..."
+  final String userBio; // "Software engineering student..."
+  final String username; // "alex.perera@example.com"
 
   UserModel({
     required this.id,
@@ -26,12 +26,14 @@ class UserModel {
 
   /// Factory to create a UserModel from a Firestore DocumentSnapshot
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data() as Map<String, dynamic>? ?? {};
 
     return UserModel(
       id: doc.id,
-      // Handling the Timestamp for DOB
-      dateOfBirth: (data['date_of_birth'] as Timestamp).toDate(),
+      // Use 'is Timestamp' check to prevent the 'Null' subtype error
+      dateOfBirth: data['date_of_birth'] is Timestamp
+          ? (data['date_of_birth'] as Timestamp).toDate()
+          : DateTime(2000, 1, 1), // Default value if missing
       firstName: data['first_name'] ?? '',
       lastName: data['last_name'] ?? '',
       profileBannerUrl: data['profile_banner_url'] ?? '',

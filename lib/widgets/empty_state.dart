@@ -11,9 +11,10 @@ class EmptyState extends StatelessWidget {
       child: Text(
         message,
         style: TextStyle(
-          color: Colors.grey.shade500,
-          fontSize: 16,
+          color: Theme.of(context).colorScheme.secondary, // Uses Apple Gray
+          fontSize: 15,
           fontWeight: FontWeight.w500,
+          letterSpacing: -0.2,
         ),
         textAlign: TextAlign.center,
       ),

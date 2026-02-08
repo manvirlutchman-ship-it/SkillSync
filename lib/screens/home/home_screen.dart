@@ -1,12 +1,19 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import '../chat/chat_screen.dart';
-import '../matching/matching_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:skillsync/providers/user_provider.dart';
+import 'package:skillsync/screens/chat/chat_screen.dart';
 import 'package:skillsync/widgets/bottom_nav.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
-  static const List<Map<String, String>> chats = [
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final List<Map<String, String>> chats = [
     {
       'name': 'Alice',
       'message': 'Hey, are you free tomorrow?',
@@ -34,91 +41,156 @@ class HomeScreen extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey.shade900,
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authUser = FirebaseAuth.instance.currentUser;
+      if (authUser != null) {
+        final provider = context.read<UserProvider>();
+        if (provider.user == null) {
+          provider.fetchUser(authUser.uid);
+        }
+      }
+    });
+  }
 
-      // 🚫 No back button
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor, // Apple F5F5F7
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Home'),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false, // Left aligned for modern iOS look
+        title: Padding(
+          padding: const EdgeInsets.only(left: 8.0),
+          child: Text(
+            'Messages',
+            style: TextStyle(
+              color: colorScheme.primary,
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              letterSpacing: -0.8,
+            ),
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.search_rounded, color: colorScheme.primary),
+            onPressed: () {},
+          ),
+        ],
       ),
 
-      // ➕ Matching screen
+      // ➕ Themed Floating Action Button
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.deepPurple,
-        child: const Icon(Icons.add),
-        onPressed: () {
-  Navigator.pushNamed(context, '/matching');
-},
-
+        elevation: 4,
+        backgroundColor: colorScheme.primary, // Slate
+        child: const Icon(Icons.add_rounded, color: Colors.white, size: 30),
+        onPressed: () => Navigator.pushNamed(context, '/matching'),
       ),
 
-      // 💬 Chat list
+      // 💬 Chat List (Themed Cards)
       body: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 20),
         itemCount: chats.length,
         itemBuilder: (context, index) {
           final chat = chats[index];
 
-          return InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ChatScreen(chatName: chat['name']!),
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ChatScreen(chatName: chat['name']!),
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16), // Consistent Squircle
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
+                    )
+                  ],
                 ),
-              );
-            },
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white10,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: Colors.deepPurple,
-                    child: Text(
-                      chat['avatar']!,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 28,
+                      backgroundColor: theme.scaffoldBackgroundColor,
+                      child: Text(
+                        chat['avatar']!,
+                        style: TextStyle(
+                          color: colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            chat['name']!,
+                            style: TextStyle(
+                              color: colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 17,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            chat['message']!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: colorScheme.secondary,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          chat['name']!,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                          chat['time']!,
+                          style: TextStyle(
+                            color: colorScheme.secondary.withOpacity(0.7),
+                            fontSize: 12,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          chat['message']!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: Colors.white70),
-                        ),
+                        const SizedBox(height: 8),
+                        // Unread indicator example
+                        if (index == 0)
+                          Container(
+                            height: 8,
+                            width: 8,
+                            decoration: const BoxDecoration(
+                              color: Colors.blueAccent, // Standard iOS notification blue
+                              shape: BoxShape.circle,
+                            ),
+                          ),
                       ],
                     ),
-                  ),
-                  Text(
-                    chat['time']!,
-                    style: const TextStyle(color: Colors.white54, fontSize: 12),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           );
@@ -128,23 +200,9 @@ class HomeScreen extends StatelessWidget {
       bottomNavigationBar: AppBottomNav(
         currentIndex: 0,
         onTap: (index) {
-          switch (index) {
-            case 0:
-              // already on home
-              break;
-            case 1:
-              Navigator.pushReplacementNamed(context, '/notifications');
-              break;
-            case 2:
-              Navigator.pushReplacementNamed(context, '/explore');
-              break;
-            case 3:
-              Navigator.pushReplacementNamed(context, '/community');
-              break;
-            case 4:
-              Navigator.pushReplacementNamed(context, '/user_profile');
-              break;
-          }
+          if (index == 0) return;
+          final routes = ['/home', '/notifications', '/explore', '/community', '/user_profile'];
+          Navigator.pushReplacementNamed(context, routes[index]);
         },
       ),
     );

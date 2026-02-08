@@ -17,16 +17,23 @@ class UserSkillModel {
 
   /// Factory to create a UserSkillModel from a Firestore DocumentSnapshot
   factory UserSkillModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data() as Map<String, dynamic>? ?? {};
+
+    // Smarter ID extraction
+    String extractedSkillId = 'Unknown Skill';
+    if (data['skill_id'] is DocumentReference) {
+      extractedSkillId = (data['skill_id'] as DocumentReference).id;
+    } else if (data['skill_id'] is String) {
+      extractedSkillId = data['skill_id'];
+    }
 
     return UserSkillModel(
       id: doc.id,
-      // Extracting ID from the Skill Reference
-      skillId: (data['skill_id'] as DocumentReference).id,
+      skillId: extractedSkillId,
       teachingOrLearning: data['teaching_or_learning'] ?? 'learning',
-      // Extracting ID from the User Reference
-      userId: (data['user_id'] as DocumentReference).id,
-      // Ensuring the rating is an integer
+      userId: data['user_id'] is DocumentReference 
+          ? (data['user_id'] as DocumentReference).id 
+          : '',
       userSkillRating: (data['user_skill_rating'] ?? 0).toInt(),
     );
   }

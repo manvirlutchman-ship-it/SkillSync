@@ -7,33 +7,35 @@ class SkillGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: SizedBox(
-        width: 260,
-        child: GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 8,
-            childAspectRatio: 3.5,
-          ),
-          itemCount: skills.length,
-          itemBuilder: (context, index) {
-            return Container(
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.2),
-              ),
-              child: Text(
-                skills[index],
-                style: const TextStyle(fontSize: 13),
-              ),
-            );
-          },
+    final theme = Theme.of(context);
+    
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      alignment: WrapAlignment.center,
+      children: skills.map((skill) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: theme.colorScheme.primary.withOpacity(0.08)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
         ),
-      ),
+        child: Text(
+          skill,
+          style: TextStyle(
+            fontSize: 13, 
+            fontWeight: FontWeight.w600,
+            color: theme.colorScheme.primary,
+          ),
+        ),
+      )).toList(),
     );
   }
 }

@@ -1,176 +1,193 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:skillsync/services/database_service.dart';
+import 'package:skillsync/services/auth_service.dart';
+import 'package:skillsync/widgets/primary_button.dart';
 
-class RegisterScreen extends StatelessWidget {
+class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
   @override
+  State<RegisterScreen> createState() => _RegisterScreenState();
+}
+
+class _RegisterScreenState extends State<RegisterScreen> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        toolbarHeight: 40,
+        backgroundColor: Colors.transparent,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: colorScheme.primary, size: 18),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // ✨ Title
-                const Text(
-                  'Create Your\nAccount',
-                  textAlign: TextAlign.center,
+                Text(
+                  'Create Account',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    height: 1.2,
+                    color: colorScheme.primary, 
+                    fontSize: 26, 
+                    fontWeight: FontWeight.bold, 
+                    letterSpacing: -0.8
                   ),
                 ),
+                const SizedBox(height: 16),
 
-                const SizedBox(height: 32),
-
-                // ⚪ BOX 1 — Form
+                // ⚪ Register Card (Radius 16)
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
+                    color: colorScheme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 8))
+                    ],
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: const [
+                    children: [
                       Text(
-                        'Create an Account',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
+                        'Join SkillSync',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: colorScheme.onSurface),
                       ),
-                      SizedBox(height: 16),
-
-                      TextField(
-                        decoration: InputDecoration(
-                          labelText: 'Username',
-                          border: OutlineInputBorder(),
-                        ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _emailController,
+                        style: TextStyle(color: colorScheme.onSurface, fontSize: 14),
+                        decoration: const InputDecoration(labelText: 'Email', isDense: true),
                       ),
-                      SizedBox(height: 12),
-
-                      TextField(
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: _passwordController,
                         obscureText: true,
-                        decoration: InputDecoration(
-                          labelText: 'Password',
-                          border: OutlineInputBorder(),
-                        ),
+                        style: TextStyle(color: colorScheme.onSurface, fontSize: 14),
+                        decoration: const InputDecoration(labelText: 'Password', isDense: true),
                       ),
-                      SizedBox(height: 12),
-
-                      TextField(
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: _confirmPasswordController,
                         obscureText: true,
-                        decoration: InputDecoration(
-                          labelText: 'Confirm Password',
-                          border: OutlineInputBorder(),
-                        ),
+                        style: TextStyle(color: colorScheme.onSurface, fontSize: 14),
+                        decoration: const InputDecoration(labelText: 'Confirm Password', isDense: true),
                       ),
+                      const SizedBox(height: 24),
+                      _isLoading 
+                        ? const SizedBox(height: 48, child: Center(child: CircularProgressIndicator()))
+                        : PrimaryButton(
+                            label: 'Register', 
+                            onPressed: _handleRegister, 
+                            height: 48
+                          ),
                     ],
                   ),
                 ),
 
                 const SizedBox(height: 16),
+                Text('Or', style: TextStyle(color: colorScheme.secondary, fontSize: 13, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 16),
 
-                // ⚪ BOX 2 — Register button
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pushNamed(context, '/onboarding_current');
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      'Register',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // Or
-                const Text(
-                  'Or',
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-
-                const SizedBox(height: 20),
-
-                // ⚪ BOX 3 — Google
-                Container(
-                  width: double.infinity, // ✅ MATCH WIDTH
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 12,
-                    horizontal: 16,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.center, // ✅ center content
-                    children: [
-                      Image.asset('assets/google.png', height: 24, width: 24),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Register using Google',
-                        style: TextStyle(color: Colors.black, fontSize: 16),
-                      ),
-                    ],
-                  ),
-                ),
-
+                _socialButton(context, 'assets/google.png', 'Join with Google'),
+                const SizedBox(height: 8),
+                _socialButton(context, 'assets/facebook.png', 'Join with Facebook'),
+                
                 const SizedBox(height: 12),
-
-                // ⚪ BOX 4 — Facebook
-                Container(
-                  width: double.infinity, // ✅ MATCH WIDTH
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 12,
-                    horizontal: 16,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.center, // ✅ center content
-                    children: [
-                      Image.asset('assets/facebook.png', height: 24, width: 24),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Register using Facebook',
-                        style: TextStyle(color: Colors.black, fontSize: 16),
-                      ),
-                    ],
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Have an account? Login', 
+                    style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.w600, fontSize: 14)
                   ),
                 ),
-
-                const SizedBox(height: 32),
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  Widget _socialButton(BuildContext context, String asset, String text) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.primary.withOpacity(0.05)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.asset(asset, height: 18, width: 18),
+          const SizedBox(width: 10),
+          Text(text, style: TextStyle(color: colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
+  void _handleRegister() async {
+    if (_emailController.text.trim().isEmpty || _passwordController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please fill in all fields")));
+      return;
+    }
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Passwords do not match")));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final authService = context.read<AuthService>();
+      final result = await authService.signUp(_emailController.text.trim(), _passwordController.text.trim());
+
+      if (result == "success") {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          await DatabaseService().createUserProfile(user.uid, user.email!);
+          if (mounted) {
+            setState(() => _isLoading = false);
+            Navigator.pushNamedAndRemoveUntil(context, '/onboarding_current', (route) => false);
+          }
+        }
+      } else {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result ?? "Registration failed")));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
+    }
   }
 }
