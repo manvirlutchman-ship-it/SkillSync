@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class PostModel {
+/*class PostModel {
   final String id;           // The document ID from Firestore
   final String content;      // "Sara is a great teacher..."
   final DateTime createdAt;  // Converted from Timestamp
@@ -38,5 +38,37 @@ class PostModel {
       'user_id': FirebaseFirestore.instance.doc('User/$userId'),
       'visibility': visibility,
     };
+  }
+}*/
+
+class Post {
+  final String username;
+  final String title;
+  final String content;
+  final Timestamp timestamp;
+
+  Post({
+    required this.username,
+    required this.title,
+    required this.content,
+    required this.timestamp,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'username': username,
+      'title': title,
+      'content': content,
+      'timestamp': timestamp,
+    };
+  }
+
+  factory Post.fromDocument(DocumentSnapshot doc) {
+    return Post(
+      username: doc['username'],
+      title: doc['title'],
+      content: doc['content'],
+      timestamp: doc['timestamp'],
+    );
   }
 }

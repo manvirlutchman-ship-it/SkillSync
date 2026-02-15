@@ -96,7 +96,7 @@ class DatabaseService {
   }
   // --- 3. SOCIAL & MESSAGING (Model Integrated) ---
 
-  Future<void> createPost(PostModel post) {
+  Future<void> createPost(Post post) {
     return _db.collection('Post').add(post.toMap());
   }
 
