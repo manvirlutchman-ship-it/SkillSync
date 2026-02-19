@@ -119,5 +119,52 @@ Future<void> createUserProfile(String userId, String email) async {
         );
   }
 
+
+ // 🟢 UPDATED: Accepts UID and a Map (Partial Update)
+  // This matches your EditProfileScreen logic.
+  Future<void> updateUser(String uid, Map<String, dynamic> data) async {
+    try {
+      print("!!! UPDATING USER PARTIALLY: $uid !!!");
+      
+      // .update() expects a Map, so this passes the data directly to Firestore
+      await _db.collection('User').doc(uid).update(data);
+      
+      print("!!! SUCCESS: User profile updated !!!");
+    } catch (e) {
+      print("!!! ERROR updating user: $e !!!");
+      rethrow;
+    }
+  }
+
+  // 🟢 ADDED: Method to wipe skills before re-entering onboarding
+  // 🟢 UPDATED: Type is now optional ({String? type}). 
+  // If type is null, it deletes ALL skills for that user.
+  Future<void> clearUserSkills(String userId, {String? type}) async {
+    try {
+      print("!!! CLEARING SKILLS FOR: $userId [${type ?? 'ALL'}] !!!");
+      
+      Query query = _db
+          .collection('UserSkill')
+          .where('user_id', isEqualTo: _db.doc('User/$userId'));
+
+      // Only filter by type if one is provided
+      if (type != null) {
+        query = query.where('teaching_or_learning', isEqualTo: type);
+      }
+
+      var snapshot = await query.get();
+      final batch = _db.batch();
+
+      for (var doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+
+      await batch.commit();
+      print("!!! SKILLS CLEARED SUCCESSFULLY !!!");
+    } catch (e) {
+      print("!!! ERROR CLEARING SKILLS: $e !!!");
+      rethrow;
+    }
+  }
   // Add more methods as needed using the same .toMap() pattern
 }

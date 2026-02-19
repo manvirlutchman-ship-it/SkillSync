@@ -50,44 +50,63 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F7), // Apple background gray
+      // Update the AppBar section of your UserProfileScreen (lib/screens/profile/user_profile_screen.dart)
+
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         automaticallyImplyLeading: false,
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child:IconButton(
-            icon: const Icon(Icons.logout, color: Color(0xFF1D1D1F)),
-            onPressed: () async {
-              // 1. Show a loading dialog (UX Best Practice)
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => const Center(child: CircularProgressIndicator()),
-              );
-
-              try {
-                // 2. Clear the Provider data first
-                context.read<UserProvider>().clearUser();
-
-                // 3. Sign out from Firebase
-                final authService = Provider.of<AuthService>(context, listen: false);
-                await authService.signOut();
-
-                // 4. Force navigation to Login and CLEAR the entire history
-                if (context.mounted) {
-                  Navigator.of(context).pushNamedAndRemoveUntil(
-                    '/login', 
-                    (route) => false,
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) Navigator.pop(context); // Remove loading dialog
-                debugPrint("Logout Error: $e");
-              }
-            },
+          // 🟢 ADDED: Edit Profile Button (Wrapped for visibility)
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.85), // Frosted background
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: const Icon(
+                Icons.edit_note_rounded, 
+                color: Color(0xFF1D1D1F), // Dark Grey
+                size: 26
+              ),
+              tooltip: 'Edit Profile',
+              onPressed: () => Navigator.pushNamed(context, '/edit_profile'),
+            ),
           ),
+
+          // Logout Button (Wrapped for consistency)
+          Container(
+            margin: const EdgeInsets.only(right: 20),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.85), // Frosted background
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: const Icon(
+                Icons.logout_rounded, 
+                color: Color(0xFF1D1D1F), // Dark Grey
+                size: 22
+              ),
+              tooltip: 'Logout',
+              onPressed: () async {
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => const Center(child: CircularProgressIndicator()),
+                );
+                try {
+                  context.read<UserProvider>().clearUser();
+                  final authService = Provider.of<AuthService>(context, listen: false);
+                  await authService.signOut();
+                  if (context.mounted) {
+                    Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                  }
+                } catch (e) {
+                  if (context.mounted) Navigator.pop(context);
+                }
+              },
+            ),
           ),
         ],
       ),
