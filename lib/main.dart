@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 // SETTINGS & SERVICES
 import 'package:skillsync/firebase_options.dart';
+import 'package:skillsync/screens/community/community_page.dart';
 import 'package:skillsync/services/auth_service.dart';
 import 'package:skillsync/providers/user_provider.dart';
 import 'package:skillsync/theme/app_theme.dart';
@@ -89,7 +90,7 @@ class SkillSyncApp extends StatelessWidget {
         '/user_profile': (context) => const UserProfileScreen(),
         '/chat': (context) => const ChatScreen(chatName: 'SkillSync User'),
         '/notifications': (context) => const NotificationsScreen(),
-        '/community': (context) => const CommunityScreen(),
+        '/community': (context) => const CommunityPage(),
         '/explore': (context) => const ExploreScreen(),
       },
     );
