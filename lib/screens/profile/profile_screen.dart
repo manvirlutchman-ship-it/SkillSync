@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:skillsync/models/user_model.dart';
+import 'package:skillsync/models/userskill_model.dart';
+import 'package:skillsync/services/database_service.dart';
 import 'package:skillsync/widgets/rating_row.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -6,91 +9,52 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Access theme colors for consistency
+    // 🟢 EXTRACT THE USER DATA passed from MatchingScreen
+    final UserModel user = ModalRoute.of(context)!.settings.arguments as UserModel;
+    final dbService = DatabaseService();
     final theme = Theme.of(context);
-    final Color appleSlate = const Color(0xFF1D1D1F);
-    final Color appleGray = const Color(0xFF86868B);
-    final Color appleBackground = const Color(0xFFF5F5F7);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: appleBackground,
-      extendBodyBehindAppBar: true,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: CircleAvatar(
-            backgroundColor: Colors.black.withOpacity(0.3),
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
-              onPressed: () => Navigator.pop(context),
-            ),
-          ),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: colorScheme.primary, size: 20),
+          onPressed: () => Navigator.pop(context),
         ),
+        title: const Text("View Profile"),
       ),
+      extendBodyBehindAppBar: true,
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // 🔝 Banner + Profile Picture (Matching UserProfileScreen)
-            _buildProfileHeader(),
+            _buildProfileHeader(user),
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
                   const SizedBox(height: 55),
-                  
-                  // Name Section
                   Text(
-                    'Username',
-                    style: TextStyle(
-                      color: appleSlate, 
-                      fontSize: 30, 
+                    user.fullName.isEmpty ? user.username : user.fullName,
+                    style: const TextStyle(
+                      color: Color(0xFF1D1D1F),
+                      fontSize: 30,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.8,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '@username_handle',
-                    style: TextStyle(
-                      color: appleGray,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    '@${user.username}',
+                    style: const TextStyle(color: Color(0xFF86868B), fontSize: 16),
                   ),
 
                   const SizedBox(height: 24),
 
-                  // Action Buttons (Accept / Decline)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _ActionButton(
-                          label: 'Accept',
-                          color: appleSlate,
-                          textColor: Colors.white,
-                          onPressed: () {
-                            Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _ActionButton(
-                          label: 'Decline',
-                          color: const Color(0xFFE8E8ED), // Light Apple Gray
-                          textColor: appleSlate,
-                          onPressed: () {},
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Bio & Rating Card
+                  // Public Bio Card
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(24),
@@ -98,24 +62,15 @@ class ProfileScreen extends StatelessWidget {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.03),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        )
+                        BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10))
                       ],
                     ),
                     child: Column(
                       children: [
                         Text(
-                          'Passionate learner, curious mind, and focused on meaningful collaboration. Always looking to sync new skills.',
+                          user.userBio.isNotEmpty ? user.userBio : "No bio provided.",
                           textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: appleSlate, 
-                            fontSize: 15, 
-                            height: 1.5,
-                            fontWeight: FontWeight.w400,
-                          ),
+                          style: const TextStyle(color: Color(0xFF1D1D1F), fontSize: 15, height: 1.5),
                         ),
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 20),
@@ -123,17 +78,10 @@ class ProfileScreen extends StatelessWidget {
                         ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Rating', 
-                              style: TextStyle(
-                                color: appleGray, 
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              )
-                            ),
-                            const SizedBox(width: 12),
-                            const RatingRow(rating: 5),
+                          children: const [
+                            Text('Rating', style: TextStyle(color: Color(0xFF86868B), fontWeight: FontWeight.w600)),
+                            SizedBox(width: 12),
+                            RatingRow(rating: 5),
                           ],
                         ),
                       ],
@@ -142,12 +90,27 @@ class ProfileScreen extends StatelessWidget {
 
                   const SizedBox(height: 32),
 
-                  // Skills Section
-                  _buildSkillSection("TEACHING", ['Flutter', 'Firebase', 'UI/UX']),
-                  const SizedBox(height: 32),
-                  _buildSkillSection("LEARNING", ['Python', 'React', 'Java']),
-                  
-                  const SizedBox(height: 50),
+                  // 🛠 Public Skills Section
+                  FutureBuilder<List<UserSkillModel>>(
+                    future: dbService.getUserSkills(user.id),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+                      }
+                      final allSkills = snapshot.data ?? [];
+                      final teachingSkills = allSkills.where((s) => s.teachingOrLearning == 'teaching').toList();
+                      final learningSkills = allSkills.where((s) => s.teachingOrLearning == 'learning').toList();
+
+                      return Column(
+                        children: [
+                          _buildSkillSection("TEACHES", teachingSkills),
+                          const SizedBox(height: 32),
+                          _buildSkillSection("WANTS TO LEARN", learningSkills),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 120),
                 ],
               ),
             ),
@@ -157,17 +120,18 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileHeader() {
+  Widget _buildProfileHeader(UserModel user) {
     return Stack(
       clipBehavior: Clip.none,
       children: [
         Container(
           height: 240,
           width: double.infinity,
-          decoration: const BoxDecoration(
-            color: Color(0xFFE8E8ED),
-            // Example Banner image:
-            // image: DecorationImage(image: NetworkImage(url), fit: BoxFit.cover),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE8E8ED),
+            image: user.profileBannerUrl.isNotEmpty 
+                ? DecorationImage(image: NetworkImage(user.profileBannerUrl), fit: BoxFit.cover)
+                : null,
           ),
         ),
         Positioned(
@@ -177,18 +141,12 @@ class ProfileScreen extends StatelessWidget {
           child: Center(
             child: Container(
               padding: const EdgeInsets.all(5),
-              decoration: const BoxDecoration(
-                color: Color(0xFFF5F5F7),
-                shape: BoxShape.circle,
-              ),
-              child: const CircleAvatar(
+              decoration: const BoxDecoration(color: Color(0xFFF5F5F7), shape: BoxShape.circle),
+              child: CircleAvatar(
                 radius: 50,
                 backgroundColor: Colors.white,
-                child: CircleAvatar(
-                  radius: 47,
-                  backgroundColor: Color(0xFFE8E8ED),
-                  child: Icon(Icons.person_rounded, color: Color(0xFF86868B), size: 45),
-                ),
+                backgroundImage: user.profilePictureUrl.isNotEmpty ? NetworkImage(user.profilePictureUrl) : null,
+                child: user.profilePictureUrl.isEmpty ? const Icon(Icons.person_rounded, color: Color(0xFF86868B), size: 45) : null,
               ),
             ),
           ),
@@ -197,70 +155,25 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSkillSection(String title, List<String> skills) {
+  Widget _buildSkillSection(String title, List<UserSkillModel> skills) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 12),
-          child: Text(
-            title, 
-            style: const TextStyle(
-              color: Color(0xFF86868B), 
-              fontSize: 12, 
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.2,
-            )
+        Text(title, style: const TextStyle(color: Color(0xFF86868B), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+        const SizedBox(height: 12),
+        if (skills.isEmpty)
+          const Text("None added.", style: TextStyle(color: Color(0xFF86868B), fontSize: 14))
+        else
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: skills.map((s) => _SkillTile(s.skillId)).toList(),
           ),
-        ),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: skills.map((s) => _SkillTile(s)).toList(),
-        ),
       ],
     );
   }
 }
 
-// 🔘 Modern Apple-style action button
-class _ActionButton extends StatelessWidget {
-  final String label;
-  final Color color;
-  final Color textColor;
-  final VoidCallback onPressed;
-
-  const _ActionButton({
-    required this.label,
-    required this.color,
-    required this.textColor,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: textColor,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16), // Match AppTheme
-          ),
-        ),
-        onPressed: onPressed,
-        child: Text(
-          label,
-          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-        ),
-      ),
-    );
-  }
-}
-
-// 🧩 Capsule-shaped skill tile
 class _SkillTile extends StatelessWidget {
   final String label;
   const _SkillTile(this.label);
@@ -271,23 +184,10 @@ class _SkillTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30), // Capsule
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
       ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Color(0xFF1D1D1F), 
-          fontSize: 14, 
-          fontWeight: FontWeight.w600,
-        ),
-      ),
+      child: Text(label, style: const TextStyle(color: Color(0xFF1D1D1F), fontSize: 14, fontWeight: FontWeight.w600)),
     );
   }
 }

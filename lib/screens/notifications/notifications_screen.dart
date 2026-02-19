@@ -1,4 +1,10 @@
+// lib/screens/notifications/notifications_screen.dart
+
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import 'package:skillsync/providers/user_provider.dart';
+import 'package:skillsync/models/notification_model.dart';
 import 'package:skillsync/widgets/app_appbar.dart';
 import 'package:skillsync/widgets/bottom_nav.dart';
 
@@ -9,67 +15,81 @@ class NotificationsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    
+    // Get the current user ID from our Provider
+    final uid = context.watch<UserProvider>().user?.id;
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor, // Apple Light Gray (F5F5F7)
-      appBar: const AppAppBar(
-        title: 'Notifications',
-        showBack: false,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        children: [
-          // Section Title (Apple Style)
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 16),
-            child: Text(
-              'RECENT',
-              style: TextStyle(
-                color: colorScheme.secondary,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.2,
-              ),
-            ),
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: const AppAppBar(title: 'Notifications', showBack: false),
+      body: uid == null 
+        ? const Center(child: CircularProgressIndicator()) 
+        : StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('Notification')
+                .where('user_id', isEqualTo: FirebaseFirestore.instance.doc('User/$uid'))
+                .orderBy('created_at', descending: true)
+                .snapshots(),
+            builder: (context, snapshot) {
+              // 1. Check for errors (Like missing index)
+              if (snapshot.hasError) {
+                debugPrint("!!! FIRESTORE ERROR: ${snapshot.error}");
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Text(
+                      "Query Error: Check terminal for index link or rules.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: colorScheme.secondary),
+                    ),
+                  ),
+                );
+              }
+
+              // 2. Handle Waiting State
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              // 3. Handle Empty State
+              final docs = snapshot.data?.docs ?? [];
+              if (docs.isEmpty) {
+                return const Center(child: Text("No notifications yet"));
+              }
+
+              // 4. Build List
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                itemCount: docs.length,
+                itemBuilder: (context, index) {
+                  try {
+                    final notify = NotificationModel.fromFirestore(docs[index]);
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _NotificationCard(
+                        notification: notify,
+                        onTap: () {
+                          if (notify.type == 'match') {
+                            Navigator.pushNamed(
+                              context, 
+                              '/matching', 
+                              arguments: notify.referenceId
+                            );
+                          }
+                        },
+                      ),
+                    );
+                  } catch (e) {
+                    // This catches model parsing errors
+                    debugPrint("Error parsing notification: $e");
+                    return const SizedBox.shrink();
+                  }
+                },
+              );
+            },
           ),
-
-          // 🧩 Fake Notification 1: Like
-          _NotificationCard(
-            icon: Icons.favorite_rounded,
-            iconColor: Colors.redAccent,
-            username: 'FlutterDev',
-            message: 'Your post on Flutter tips got 5 new likes!',
-            timeAgo: '2h ago',
-            isUnread: true,
-          ),
-
-          const SizedBox(height: 12),
-
-          // 🧩 Fake Notification 2: Connection
-          _NotificationCard(
-            icon: Icons.person_add_rounded,
-            iconColor: Colors.blueAccent,
-            username: 'SkillSync Team',
-            message: 'You have a new connection request from Sarah.',
-            timeAgo: '5h ago',
-          ),
-
-          const SizedBox(height: 12),
-
-          // 🧩 Fake Notification 3: Achievement
-          _NotificationCard(
-            icon: Icons.emoji_events_rounded,
-            iconColor: Colors.orangeAccent,
-            username: 'System',
-            message: 'Congrats! You reached Level 2 in Dart proficiency.',
-            timeAgo: 'Yesterday',
-          ),
-        ],
-      ),
-
-      // 🔽 Bottom nav
       bottomNavigationBar: AppBottomNav(
-        currentIndex: 1, // Alerts/Notifications tab
+        currentIndex: 1, 
         onTap: (index) {
           if (index == 1) return;
           final routes = ['/home', '/notifications', '/explore', '/community', '/user_profile'];
@@ -80,103 +100,55 @@ class NotificationsScreen extends StatelessWidget {
   }
 }
 
-// 🧩 Premium Notification Card Widget
 class _NotificationCard extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String username;
-  final String message;
-  final String timeAgo;
-  final bool isUnread;
+  final NotificationModel notification;
+  final VoidCallback? onTap;
 
   const _NotificationCard({
-    required this.icon,
-    required this.iconColor,
-    required this.username,
-    required this.message,
-    required this.timeAgo,
-    this.isUnread = false,
+    required this.notification,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16), // Consistent Squircle
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Icon Circle instead of just a color
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: iconColor, size: 20),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      username,
-                      style: TextStyle(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
-                    ),
-                    if (isUnread)
-                      Container(
-                        height: 8,
-                        width: 8,
-                        decoration: const BoxDecoration(
-                          color: Colors.blueAccent,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  message,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: colorScheme.primary.withOpacity(0.8),
-                    height: 1.3,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  timeAgo,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: colorScheme.secondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        title: Text(
+          _buildTitle(notification),
+          style: theme.textTheme.titleMedium,
+        ),
+        subtitle: Text(
+          _buildSubtitle(notification),
+          style: theme.textTheme.bodySmall,
+        ),
+        trailing: notification.readAt == null
+            ? const Icon(Icons.circle, size: 10) // unread indicator
+            : null,
+        onTap: onTap,
       ),
     );
+  }
+
+  String _buildTitle(NotificationModel n) {
+    switch (n.type) {
+      case 'match':
+        return "New Match!";
+      case 'comment':
+        return "New Comment";
+      default:
+        return "Notification";
+    }
+  }
+
+  String _buildSubtitle(NotificationModel n) {
+    return "Related to ${n.referencePath} (${n.referenceId})\n"
+           "Created at: ${n.createdAt}";
   }
 }

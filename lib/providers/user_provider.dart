@@ -11,14 +11,14 @@ class UserProvider with ChangeNotifier {
 
   UserModel? get user => _user;
   bool get isFetching => _isFetching;
-  
+
   Future<void> fetchUser(String uid) async {
     if (_isFetching) return;
     _isFetching = true;
-    
+
     try {
-      final fetchedUser = await _db.getUserProfile(uid); 
-      
+      final fetchedUser = await _db.getUserProfile(uid);
+
       if (fetchedUser == null) {
         // AUTO-REPAIR: If the document is missing, create it now!
         print("!!! Document missing in Firestore. Repairing now... !!!");
@@ -34,7 +34,7 @@ class UserProvider with ChangeNotifier {
       print("!!! ERROR: $e");
     } finally {
       _isFetching = false;
-      notifyListeners(); 
+      notifyListeners();
     }
   }
 
@@ -46,24 +46,11 @@ class UserProvider with ChangeNotifier {
 
   // Add this getter to your UserProvider class
   bool get needsOnboarding {
-    // If the user exists but has a default name or no bio, they might need onboarding.
-    // Or more accurately: if you want to force onboarding for everyone with no data:
+    // If user is still loading, we don't know yet (return false to avoid flicker)
     if (_user == null) return false;
-    return _user!.firstName.isEmpty && _user!.userBio.isEmpty;
+    // Only onboard if the explicit flag is false
+    return _user!.isOnboarded == false;
   }
 
-  // Keep for internal dev testing only
-  void loadMockUser() {
-    _user = UserModel(
-      id: "1",
-      firstName: "Alex (Mock)",
-      lastName: "Perera",
-      username: "alex@test.com",
-      userBio: "I am a mock user for testing",
-      profilePictureUrl: "",
-      profileBannerUrl: "",
-      dateOfBirth: DateTime.now(),
-    );
-    notifyListeners();
-  }
+  
 }

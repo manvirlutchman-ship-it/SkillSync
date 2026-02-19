@@ -29,7 +29,7 @@ import 'package:skillsync/screens/notifications/notifications_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  
+
   // Force logout once to reset the theme state and test Login screen
   //await FirebaseAuth.instance.signOut();
 
@@ -54,53 +54,58 @@ class SkillSyncApp extends StatelessWidget {
       title: 'SkillSync',
 
       // Using our custom theme class exclusively
-      theme: AppTheme.lightTheme, 
+      theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.light, // Forces the Apple Light look
-
       // AUTH GATE
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
           }
 
           if (snapshot.hasData && snapshot.data != null) {
-            // User is authenticated, now check the Profile Data via Consumer
             return Consumer<UserProvider>(
               builder: (context, userProvider, child) {
-                // 1. Trigger the fetch if we haven't yet
+                // 1. If we have a Firebase User but NO Firestore Data yet, fetch it
                 if (userProvider.user == null && !userProvider.isFetching) {
-                  Future.microtask(() => userProvider.fetchUser(snapshot.data!.uid));
-                  return const Scaffold(body: Center(child: CircularProgressIndicator()));
+                  Future.microtask(
+                    () => userProvider.fetchUser(snapshot.data!.uid),
+                  );
+                  // Show a nice loading screen while the database is being read
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  );
                 }
 
-                // 2. If data is still loading, show spinner
+                // 2. Wait until the fetch actually finishes
                 if (userProvider.user == null) {
-                  return const Scaffold(body: Center(child: CircularProgressIndicator()));
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  );
                 }
 
-                // 3. DECISION: If profile is empty/new, go to Onboarding
+                // 3. Now we have real data, we can safely decide
                 if (userProvider.needsOnboarding) {
                   return const OnboardingCurrentSkillsScreen();
                 }
 
-                // 4. Otherwise, go to Home
                 return const HomeScreen();
               },
             );
           }
-          
           return const LoginScreen();
         },
       ),
 
-
       routes: {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
-        '/onboarding_current': (context) => const OnboardingCurrentSkillsScreen(),
+        '/onboarding_current': (context) =>
+            const OnboardingCurrentSkillsScreen(),
         '/onboarding_new': (context) => const OnboardingNewSkillsScreen(),
         '/splash': (context) => const SplashScreen(),
         '/home': (context) => const HomeScreen(),

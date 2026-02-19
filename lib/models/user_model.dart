@@ -9,6 +9,7 @@ class UserModel {
   final String profilePictureUrl; // "https://example.com/..."
   final String userBio; // "Software engineering student..."
   final String username; // "alex.perera@example.com"
+  final bool isOnboarded;
 
   UserModel({
     required this.id,
@@ -19,6 +20,7 @@ class UserModel {
     required this.profilePictureUrl,
     required this.userBio,
     required this.username,
+    required this.isOnboarded,
   });
 
   /// Helper getter to show the full name in the UI without extra logic
@@ -40,6 +42,8 @@ class UserModel {
       profilePictureUrl: data['profile_picture_url'] ?? '',
       userBio: data['user_bio'] ?? '',
       username: data['username'] ?? '',
+
+      isOnboarded: data['is_onboarded'] ?? false,
     );
   }
 
@@ -53,6 +57,7 @@ class UserModel {
       'profile_picture_url': profilePictureUrl,
       'user_bio': userBio,
       'username': username,
+      'is_onboarded': isOnboarded,
     };
   }
 }

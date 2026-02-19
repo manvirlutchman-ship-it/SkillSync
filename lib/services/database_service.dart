@@ -166,5 +166,11 @@ Future<void> createUserProfile(String userId, String email) async {
       rethrow;
     }
   }
+
+  Future<void> completeOnboarding(String userId) async {
+  await _db.collection('User').doc(userId).update({
+    'is_onboarded': true,
+  });
+}
   // Add more methods as needed using the same .toMap() pattern
 }

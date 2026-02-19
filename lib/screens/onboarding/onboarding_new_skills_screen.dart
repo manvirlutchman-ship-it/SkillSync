@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:skillsync/providers/user_provider.dart';
 import 'package:skillsync/services/database_service.dart';
 import 'package:skillsync/widgets/primary_button.dart'; // Using the consistent button widget
 
@@ -16,11 +18,21 @@ class _OnboardingNewSkillsScreenState extends State<OnboardingNewSkillsScreen> {
   bool _isLoading = false;
 
   final List<String> categories = [
-    'Programming', 'Design', 'Marketing', 'Business', 'Languages'
+    'Programming',
+    'Design',
+    'Marketing',
+    'Business',
+    'Languages',
   ];
   final List<String> skills = [
-    'Flutter', 'React', 'UI Design', 'UX Research', 'Python',
-    'Java', 'Public Speaking', 'Project Management'
+    'Flutter',
+    'React',
+    'UI Design',
+    'UX Research',
+    'Python',
+    'Java',
+    'Public Speaking',
+    'Project Management',
   ];
 
   @override
@@ -44,7 +56,7 @@ class _OnboardingNewSkillsScreenState extends State<OnboardingNewSkillsScreen> {
                   color: Colors.black.withOpacity(0.03),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
-                )
+                ),
               ],
             ),
             child: Column(
@@ -112,7 +124,9 @@ class _OnboardingNewSkillsScreenState extends State<OnboardingNewSkillsScreen> {
   void _handleConfirm() async {
     if (_selectedSkills.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select at least one skill you want to learn")),
+        const SnackBar(
+          content: Text("Please select at least one skill you want to learn"),
+        ),
       );
       return;
     }
@@ -121,23 +135,31 @@ class _OnboardingNewSkillsScreenState extends State<OnboardingNewSkillsScreen> {
 
     try {
       final userId = FirebaseAuth.instance.currentUser?.uid;
+
       if (userId != null) {
+        // Save selected skills
         await DatabaseService().saveUserSkills(
           userId: userId,
           skills: _selectedSkills.toList(),
-          type: "learning", // Correctly tagged for this screen
+          type: "learning",
         );
 
+        // 🟢 Mark onboarding as completed
+        await DatabaseService().completeOnboarding(userId);
+
+        // 🟢 Refresh provider so main.dart detects onboarding change
+        await context.read<UserProvider>().fetchUser(userId);
+
         if (mounted) {
-          // Final Step: Go to Home and clear navigation stack
+          // Navigate to Home and clear stack
           Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error saving interests: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error saving interests: $e")));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -170,7 +192,11 @@ class _OnboardingNewSkillsScreenState extends State<OnboardingNewSkillsScreen> {
       style: TextStyle(color: colorScheme.primary, fontSize: 14),
       decoration: InputDecoration(
         hintText: 'Search skills...',
-        prefixIcon: Icon(Icons.search_rounded, color: colorScheme.secondary, size: 20),
+        prefixIcon: Icon(
+          Icons.search_rounded,
+          color: colorScheme.secondary,
+          size: 20,
+        ),
         isDense: true,
       ),
     );
@@ -218,7 +244,9 @@ class _OnboardingNewSkillsScreenState extends State<OnboardingNewSkillsScreen> {
         final isSelected = _selectedSkills.contains(skill);
         return GestureDetector(
           onTap: () => setState(
-            () => isSelected ? _selectedSkills.remove(skill) : _selectedSkills.add(skill),
+            () => isSelected
+                ? _selectedSkills.remove(skill)
+                : _selectedSkills.add(skill),
           ),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
@@ -226,7 +254,9 @@ class _OnboardingNewSkillsScreenState extends State<OnboardingNewSkillsScreen> {
             decoration: BoxDecoration(
               color: isSelected ? colorScheme.primary : Colors.white,
               border: Border.all(
-                color: isSelected ? colorScheme.primary : const Color(0xFFE8E8ED),
+                color: isSelected
+                    ? colorScheme.primary
+                    : const Color(0xFFE8E8ED),
                 width: 1.5,
               ),
               borderRadius: BorderRadius.circular(16), // Consistent Squircle
@@ -236,7 +266,7 @@ class _OnboardingNewSkillsScreenState extends State<OnboardingNewSkillsScreen> {
                     color: Colors.black.withOpacity(0.02),
                     blurRadius: 5,
                     offset: const Offset(0, 2),
-                  )
+                  ),
               ],
             ),
             child: Text(
