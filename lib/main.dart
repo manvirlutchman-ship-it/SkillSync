@@ -61,23 +61,41 @@ class SkillSyncApp extends StatelessWidget {
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
-          // If checking for a session, show a neutral loader
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator(color: Color(0xFF1D1D1F))),
-            );
+            return const Scaffold(body: Center(child: CircularProgressIndicator()));
           }
 
-          // If user is logged in, send them to Home
           if (snapshot.hasData && snapshot.data != null) {
-            return const HomeScreen();
+            // User is authenticated, now check the Profile Data via Consumer
+            return Consumer<UserProvider>(
+              builder: (context, userProvider, child) {
+                // 1. Trigger the fetch if we haven't yet
+                if (userProvider.user == null && !userProvider.isFetching) {
+                  Future.microtask(() => userProvider.fetchUser(snapshot.data!.uid));
+                  return const Scaffold(body: Center(child: CircularProgressIndicator()));
+                }
+
+                // 2. If data is still loading, show spinner
+                if (userProvider.user == null) {
+                  return const Scaffold(body: Center(child: CircularProgressIndicator()));
+                }
+
+                // 3. DECISION: If profile is empty/new, go to Onboarding
+                if (userProvider.needsOnboarding) {
+                  return const OnboardingCurrentSkillsScreen();
+                }
+
+                // 4. Otherwise, go to Home
+                return const HomeScreen();
+              },
+            );
           }
           
-          // If no user, show Login
           return const LoginScreen();
         },
       ),
 
+      
       routes: {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),

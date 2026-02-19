@@ -44,6 +44,14 @@ class UserProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // Add this getter to your UserProvider class
+  bool get needsOnboarding {
+    // If the user exists but has a default name or no bio, they might need onboarding.
+    // Or more accurately: if you want to force onboarding for everyone with no data:
+    if (_user == null) return false;
+    return _user!.firstName.isEmpty && _user!.userBio.isEmpty;
+  }
+
   // Keep for internal dev testing only
   void loadMockUser() {
     _user = UserModel(

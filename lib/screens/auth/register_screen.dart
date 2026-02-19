@@ -60,7 +60,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // ⚪ Register Card (Radius 16)
+                // ⚪ Register Card
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -112,9 +112,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Text('Or', style: TextStyle(color: colorScheme.secondary, fontSize: 13, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 16),
 
-                _socialButton(context, 'assets/google.png', 'Join with Google'),
+                // 🔵 Google Login Button
+                _socialButton(
+                  context, 
+                  'assets/google.png', 
+                  'Join with Google', 
+                  _handleGoogleLogin
+                ),
                 const SizedBox(height: 8),
-                _socialButton(context, 'assets/facebook.png', 'Join with Facebook'),
+                _socialButton(
+                  context, 
+                  'assets/facebook.png', 
+                  'Join with Facebook', 
+                  () {}
+                ),
                 
                 const SizedBox(height: 12),
                 TextButton(
@@ -132,23 +143,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _socialButton(BuildContext context, String asset, String text) {
+  Widget _socialButton(BuildContext context, String asset, String text, VoidCallback onTap) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.primary.withOpacity(0.05)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Image.asset(asset, height: 18, width: 18),
-          const SizedBox(width: 10),
-          Text(text, style: TextStyle(color: colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
-        ],
+    return InkWell(
+      onTap: _isLoading ? null : onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: colorScheme.primary.withOpacity(0.05)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(asset, height: 18, width: 18),
+            const SizedBox(width: 10),
+            Text(text, style: TextStyle(color: colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
+          ],
+        ),
       ),
     );
   }
@@ -188,6 +203,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
+    }
+  }
+
+  void _handleGoogleLogin() async {
+    setState(() => _isLoading = true);
+    final authService = context.read<AuthService>();
+    
+    try {
+      final result = await authService.signInWithGoogle();
+
+      if (result == "success") {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          final profile = await DatabaseService().getUserProfile(user.uid);
+          if (profile == null) {
+            await DatabaseService().createUserProfile(user.uid, user.email!);
+            if (mounted) Navigator.pushNamedAndRemoveUntil(context, '/onboarding_current', (route) => false);
+          } else {
+            if (mounted) Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+          }
+        }
+      } else if (result != "canceled") {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result ?? "Google Sign-In failed"), backgroundColor: Colors.redAccent)
+          );
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 }

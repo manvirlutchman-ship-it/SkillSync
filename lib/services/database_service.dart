@@ -32,26 +32,30 @@ class DatabaseService {
   }
 
   // Matches Register Screen Logic
-  Future<void> createUserProfile(String userId, String email) async {
+Future<void> createUserProfile(String userId, String email) async {
     try {
-      // Aligned with your UserModel.toMap() keys
+      // Senior Tip: Extract a default username from the email 
+      // (e.g., alex@test.com becomes 'alex')
+      final String defaultUsername = email.split('@')[0];
+
       await _db.collection('User').doc(userId).set({
-        'username': email,
-        'first_name': '',
+        'id': userId, // Good practice to have the ID inside the document too
+        'username': defaultUsername,
+        'email': email,
+        'first_name': '', // Must stay empty to trigger onboarding check in main.dart
         'last_name': '',
-        'user_bio': '',
+        'user_bio': '',   // Must stay empty to trigger onboarding check in main.dart
         'profile_picture_url': '',
         'profile_banner_url': '',
-        'date_of_birth': Timestamp.fromDate(
-          DateTime(2000, 1, 1),
-        ), // Default DOB
+        'date_of_birth': Timestamp.fromDate(DateTime(2000, 1, 1)),
       });
+      
+      print("!!! SUCCESS: Initial profile created for $userId !!!");
     } catch (e) {
-      print("Error creating user profile: $e");
+      print("!!! ERROR creating user profile: $e !!!");
       rethrow;
     }
   }
-
   // --- 2. USERSKILL LOGIC (Critical for Onboarding) ---
 
   Future<void> saveUserSkills({
