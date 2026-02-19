@@ -32,9 +32,9 @@ class DatabaseService {
   }
 
   // Matches Register Screen Logic
-Future<void> createUserProfile(String userId, String email) async {
+  Future<void> createUserProfile(String userId, String email) async {
     try {
-      // Senior Tip: Extract a default username from the email 
+      // Senior Tip: Extract a default username from the email
       // (e.g., alex@test.com becomes 'alex')
       final String defaultUsername = email.split('@')[0];
 
@@ -42,14 +42,16 @@ Future<void> createUserProfile(String userId, String email) async {
         'id': userId, // Good practice to have the ID inside the document too
         'username': defaultUsername,
         'email': email,
-        'first_name': '', // Must stay empty to trigger onboarding check in main.dart
+        'first_name':
+            '', // Must stay empty to trigger onboarding check in main.dart
         'last_name': '',
-        'user_bio': '',   // Must stay empty to trigger onboarding check in main.dart
+        'user_bio':
+            '', // Must stay empty to trigger onboarding check in main.dart
         'profile_picture_url': '',
         'profile_banner_url': '',
         'date_of_birth': Timestamp.fromDate(DateTime(2000, 1, 1)),
       });
-      
+
       print("!!! SUCCESS: Initial profile created for $userId !!!");
     } catch (e) {
       print("!!! ERROR creating user profile: $e !!!");
@@ -119,16 +121,16 @@ Future<void> createUserProfile(String userId, String email) async {
         );
   }
 
-
- // 🟢 UPDATED: Accepts UID and a Map (Partial Update)
+  
+  // 🟢 UPDATED: Accepts UID and a Map (Partial Update)
   // This matches your EditProfileScreen logic.
   Future<void> updateUser(String uid, Map<String, dynamic> data) async {
     try {
       print("!!! UPDATING USER PARTIALLY: $uid !!!");
-      
+
       // .update() expects a Map, so this passes the data directly to Firestore
       await _db.collection('User').doc(uid).update(data);
-      
+
       print("!!! SUCCESS: User profile updated !!!");
     } catch (e) {
       print("!!! ERROR updating user: $e !!!");
@@ -137,12 +139,12 @@ Future<void> createUserProfile(String userId, String email) async {
   }
 
   // 🟢 ADDED: Method to wipe skills before re-entering onboarding
-  // 🟢 UPDATED: Type is now optional ({String? type}). 
+  // 🟢 UPDATED: Type is now optional ({String? type}).
   // If type is null, it deletes ALL skills for that user.
   Future<void> clearUserSkills(String userId, {String? type}) async {
     try {
       print("!!! CLEARING SKILLS FOR: $userId [${type ?? 'ALL'}] !!!");
-      
+
       Query query = _db
           .collection('UserSkill')
           .where('user_id', isEqualTo: _db.doc('User/$userId'));
@@ -168,9 +170,45 @@ Future<void> createUserProfile(String userId, String email) async {
   }
 
   Future<void> completeOnboarding(String userId) async {
-  await _db.collection('User').doc(userId).update({
-    'is_onboarded': true,
-  });
-}
+    await _db.collection('User').doc(userId).update({'is_onboarded': true});
+  }
+
+  // 🟢 ADD THIS METHOD
+   Future<void> sendMessage(String conversationId, String senderId, String text) async {
+    try {
+      await _db.collection('Message').add({
+        'conversation_id': _db.doc('Conversation/$conversationId'),
+        'sender_id': _db.doc('User/$senderId'),
+        'content': text,
+        'sent_at': FieldValue.serverTimestamp(),
+        'is_read': false,
+        'message_type': 'text',
+      });
+    } catch (e) {
+      print("Error in DatabaseService.sendMessage: $e");
+      rethrow;
+    }
+  }
+
+  // 🟢 ALSO ADD THIS: Needed to list your chats on the Home Screen
+  Stream<List<ConversationModel>> getMyConversations(String userId) {
+    // This finds conversations where the match involves the user
+    // Note: This requires a Match record to exist first!
+    return _db.collection('Conversation')
+        .orderBy('created_at', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs.map((doc) => ConversationModel.fromFirestore(doc)).toList());
+  }
+
+  // 🟢 ADD THIS: Mark notification as handled/read
+  Future<void> markNotificationAsRead(String notificationId) async {
+    try {
+      await _db.collection('Notification').doc(notificationId).update({
+        'read_at': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      print("Error marking notification as read: $e");
+    }
+  }
   // Add more methods as needed using the same .toMap() pattern
 }

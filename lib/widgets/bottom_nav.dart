@@ -73,9 +73,10 @@ class AppBottomNav extends StatelessWidget {
             BottomNavigationBarItem(
               icon: Padding(
                 padding: EdgeInsets.only(bottom: 4),
-                child: Icon(Icons.explore_rounded),
+                //child: Icon(Icons.explore_rounded),
+                child: Icon(Icons.swipe_rounded), 
               ),
-              label: 'Explore',
+              label: 'Match',
             ),
             BottomNavigationBarItem(
               icon: Padding(

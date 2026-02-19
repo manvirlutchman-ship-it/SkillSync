@@ -459,7 +459,8 @@ class _MatchingScreenState extends State<MatchingScreen> {
             const SizedBox(height: 32),
             PrimaryButton(
               label: "GO BACK HOME",
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pushReplacementNamed(context, '/home'),
+
             ),
           ],
         ),

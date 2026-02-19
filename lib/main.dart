@@ -113,10 +113,11 @@ class SkillSyncApp extends StatelessWidget {
         '/profile': (context) => const ProfileScreen(),
         '/user_profile': (context) => const UserProfileScreen(),
         '/edit_profile': (context) => const EditProfileScreen(),
-        '/chat': (context) => const ChatScreen(chatName: 'SkillSync User'),
+        //'/chat': (context) => const ChatScreen(chatName: 'SkillSync User'),
         '/notifications': (context) => const NotificationsScreen(),
         '/community': (context) => const CommunityPage(),
-        '/explore': (context) => const ExploreScreen(),
+        '/explore': (context) => const MatchingScreen(),
+        '/match': (context) => const MatchingScreen(),
       },
     );
   }
