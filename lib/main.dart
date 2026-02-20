@@ -15,7 +15,7 @@ import 'package:skillsync/screens/auth/register_screen.dart';
 import 'package:skillsync/screens/home/home_screen.dart';
 import 'package:skillsync/screens/notifications/notifications_screen.dart';
 import 'package:skillsync/screens/matching/matching_screen.dart';
-import 'package:skillsync/screens/community/community_screen.dart';
+import 'package:skillsync/screens/community/community_page.dart';
 import 'package:skillsync/screens/profile/user_profile_screen.dart';
 import 'package:skillsync/screens/profile/profile_screen.dart';
 import 'package:skillsync/screens/profile/edit_profile_screen.dart';
@@ -83,7 +83,7 @@ class SkillSyncApp extends StatelessWidget {
         '/user_profile': (context) => const UserProfileScreen(),
         '/edit_profile': (context) => const EditProfileScreen(),
         '/notifications': (context) => const NotificationsScreen(),
-        '/community': (context) => const CommunityScreen(),
+        '/community': (context) => const CommunityPage(),
         '/explore': (context) =>
             const MatchingScreen(), // Redirected as requested
       },

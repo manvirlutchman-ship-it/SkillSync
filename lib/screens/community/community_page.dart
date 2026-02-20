@@ -35,7 +35,6 @@ class _CommunityPageState extends State<CommunityPage> {
         title: const Text('Community'),
       ),
 
-      // ✅ Bottom Navigation
       bottomNavigationBar: AppBottomNav(
         currentIndex: 3,
         onTap: (index) {
@@ -51,13 +50,18 @@ class _CommunityPageState extends State<CommunityPage> {
         },
       ),
 
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showCreatePostDialog(
-          context,
-          currentUserId,
-          currentUserName,
+      floatingActionButton: Semantics(
+        label: 'Create a new post',
+        button: true,
+        child: FloatingActionButton(
+          tooltip: 'Create Post',
+          onPressed: () => _showCreatePostDialog(
+            context,
+            currentUserId,
+            currentUserName,
+          ),
+          child: const Icon(Icons.edit),
         ),
-        child: const Icon(Icons.edit),
       ),
 
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -65,7 +69,10 @@ class _CommunityPageState extends State<CommunityPage> {
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(
-              child: Text('Error: ${snapshot.error}'),
+              child: Text(
+                'Error: ${snapshot.error}',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
             );
           }
 
@@ -76,7 +83,12 @@ class _CommunityPageState extends State<CommunityPage> {
           final posts = snapshot.data!.docs;
 
           if (posts.isEmpty) {
-            return const Center(child: Text('No posts yet.'));
+            return Center(
+              child: Text(
+                'No posts yet.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            );
           }
 
           return ListView.builder(
@@ -108,75 +120,120 @@ class _CommunityPageState extends State<CommunityPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
 
-                      // 🔹 Author + Delete
+                      /// AUTHOR ROW
                       Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              authorName,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                            child: Semantics(
+                              label: 'Post author: $authorName',
+                              child: Text(
+                                authorName,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
                               ),
                             ),
                           ),
 
-                          // ✅ Only show delete if user owns post
                           if (authorId == currentUserId)
-                            IconButton(
-                              tooltip: 'Delete post',
-                              icon: const Icon(Icons.delete_outline),
-                              onPressed: () async {
-                                await _service.deletePost(postId: postId);
-                              },
+                            Semantics(
+                              label: 'Delete this post',
+                              button: true,
+                              child: IconButton(
+                                tooltip: 'Delete post',
+                                constraints: const BoxConstraints(
+                                  minWidth: 48,
+                                  minHeight: 48,
+                                ),
+                                icon: const Icon(Icons.delete_outline),
+                                onPressed: () async {
+                                  await _service.deletePost(postId: postId);
+                                },
+                              ),
                             ),
                         ],
                       ),
 
                       const SizedBox(height: 8),
 
-                      // Post text
-                      Text(
-                        text,
-                        style: const TextStyle(fontSize: 15),
+                      /// POST TEXT
+                      Semantics(
+                        label: 'Post content: $text',
+                        child: Text(
+                          text,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
                       ),
 
                       const SizedBox(height: 12),
 
-                      // 🔹 Like + Comment
+                      /// LIKE + COMMENT
                       Row(
                         children: [
-                          IconButton(
-                            icon: Icon(
-                              isLiked
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              color:
-                                  isLiked ? Colors.red : null,
+                          Semantics(
+                            label: isLiked
+                                ? 'Unlike post. $likeCount likes'
+                                : 'Like post. $likeCount likes',
+                            button: true,
+                            child: IconButton(
+                              tooltip: isLiked
+                                  ? 'Unlike post'
+                                  : 'Like post',
+                              constraints: const BoxConstraints(
+                                minWidth: 48,
+                                minHeight: 48,
+                              ),
+                              icon: Icon(
+                                isLiked
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+                                color:
+                                    isLiked ? Colors.red : null,
+                              ),
+                              onPressed: () async {
+                                await _service.toggleLike(
+                                  postId: postId,
+                                  userId: currentUserId,
+                                );
+                              },
                             ),
-                            onPressed: () async {
-                              await _service.toggleLike(
-                                postId: postId,
-                                userId: currentUserId,
-                              );
-                            },
                           ),
 
-                          Text('$likeCount'),
+                          Semantics(
+                            label: '$likeCount likes',
+                            child: Text(
+                              '$likeCount',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium,
+                            ),
+                          ),
 
                           const SizedBox(width: 16),
 
-                          TextButton.icon(
-                            onPressed: () => _openCommentsSheet(
-                              context,
-                              postId,
-                              authorName,
-                              text,
-                              currentUserId,
-                              currentUserName,
+                          Semantics(
+                            label: 'Open comments for this post',
+                            button: true,
+                            child: TextButton.icon(
+                              icon: const Icon(Icons.comment_outlined),
+                              label: Text(
+                                'Comment',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelLarge,
+                              ),
+                              onPressed: () => _openCommentsSheet(
+                                context,
+                                postId,
+                                authorName,
+                                text,
+                                currentUserId,
+                                currentUserName,
+                              ),
                             ),
-                            icon: const Icon(Icons.comment_outlined),
-                            label: const Text('Comment'),
                           ),
                         ],
                       ),
@@ -191,7 +248,7 @@ class _CommunityPageState extends State<CommunityPage> {
     );
   }
 
-  // ✅ CREATE POST
+  /// CREATE POST
   Future<void> _showCreatePostDialog(
     BuildContext context,
     String userId,
@@ -203,12 +260,16 @@ class _CommunityPageState extends State<CommunityPage> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Create Post'),
-        content: TextField(
-          controller: controller,
-          maxLines: 4,
-          decoration: const InputDecoration(
-            hintText: 'Write something...',
-            border: OutlineInputBorder(),
+        content: Semantics(
+          label: 'Post text input field',
+          textField: true,
+          child: TextField(
+            controller: controller,
+            maxLines: 4,
+            decoration: const InputDecoration(
+              hintText: 'Write something...',
+              border: OutlineInputBorder(),
+            ),
           ),
         ),
         actions: [
@@ -226,7 +287,9 @@ class _CommunityPageState extends State<CommunityPage> {
                 authorName: userName,
               );
 
-              if (dialogContext.mounted) Navigator.pop(dialogContext);
+              if (dialogContext.mounted) {
+                Navigator.pop(dialogContext);
+              }
             },
             child: const Text('Post'),
           ),
@@ -235,8 +298,7 @@ class _CommunityPageState extends State<CommunityPage> {
     );
   }
 
-  
-  // ✅ COMMENTS SHEET
+  /// COMMENTS SHEET
   void _openCommentsSheet(
     BuildContext context,
     String postId,
@@ -266,9 +328,15 @@ class _CommunityPageState extends State<CommunityPage> {
               ListTile(
                 title: Text(
                   postAuthor,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ),
-                subtitle: Text(postText),
+                subtitle: Text(
+                  postText,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
               ),
 
               const Divider(),
@@ -287,8 +355,13 @@ class _CommunityPageState extends State<CommunityPage> {
                     final comments = snapshot.data!.docs;
 
                     if (comments.isEmpty) {
-                      return const Center(
-                        child: Text('No comments yet.'),
+                      return Center(
+                        child: Text(
+                          'No comments yet.',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium,
+                        ),
                       );
                     }
 
@@ -298,7 +371,8 @@ class _CommunityPageState extends State<CommunityPage> {
                       itemBuilder: (_, i) {
                         final c = comments[i].data();
                         final commentId = comments[i].id;
-                        final commentAuthorId = c['authorId'] ?? '';
+                        final commentAuthorId =
+                            c['authorId'] ?? '';
 
                         return ListTile(
                           dense: true,
@@ -307,14 +381,24 @@ class _CommunityPageState extends State<CommunityPage> {
                               Expanded(
                                 child: Text(
                                   c['authorName'] ?? 'Unknown',
-                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                 ),
                               ),
-
-                              // ✅ Show delete only if current user owns comment
-                              if (commentAuthorId == currentUserId)
+                              if (commentAuthorId ==
+                                  currentUserId)
                                 IconButton(
-                                  icon: const Icon(Icons.delete_outline, size: 18),
+                                  tooltip: 'Delete comment',
+                                  constraints:
+                                      const BoxConstraints(
+                                    minWidth: 48,
+                                    minHeight: 48,
+                                  ),
+                                  icon: const Icon(Icons.delete_outline),
                                   onPressed: () async {
                                     await _service.deleteComment(
                                       postId: postId,
@@ -324,9 +408,13 @@ class _CommunityPageState extends State<CommunityPage> {
                                 ),
                             ],
                           ),
-                          subtitle: Text(c['text'] ?? ''),
+                          subtitle: Text(
+                            c['text'] ?? '',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium,
+                          ),
                         );
-
                       },
                     );
                   },
@@ -348,9 +436,16 @@ class _CommunityPageState extends State<CommunityPage> {
                   ),
                   const SizedBox(width: 8),
                   IconButton(
+                    tooltip: 'Send comment',
+                    constraints: const BoxConstraints(
+                      minWidth: 48,
+                      minHeight: 48,
+                    ),
                     icon: const Icon(Icons.send),
                     onPressed: () async {
-                      if (commentController.text.trim().isEmpty) return;
+                      if (commentController.text
+                          .trim()
+                          .isEmpty) return;
 
                       await _service.addComment(
                         postId: postId,
