@@ -1,66 +1,57 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserModel {
-  final String id; // The document ID from Firestore (Auth UID)
-  final DateTime dateOfBirth; // Converted from Timestamp
-  final String firstName; // "Alex"
-  final String lastName; // "Perera"
-  final String profileBannerUrl; // "https://example.com/..."
-  final String profilePictureUrl; // "https://example.com/..."
-  final String userBio; // "Software engineering student..."
-  final String username; // "alex.perera@example.com"
+  final String id;
+  final String username;
+  final String firstName;
+  final String lastName;
+  final String userBio;
+  final String profilePictureUrl;
+  final String profileBannerUrl;
+  final DateTime dateOfBirth;
   final bool isOnboarded;
-  final int likesCount;
-  
-
+  final int likesCount; // 🟢 Added
 
   UserModel({
     required this.id,
-    required this.dateOfBirth,
+    required this.username,
     required this.firstName,
     required this.lastName,
-    required this.profileBannerUrl,
-    required this.profilePictureUrl,
     required this.userBio,
-    required this.username,
+    required this.profilePictureUrl,
+    required this.profileBannerUrl,
+    required this.dateOfBirth,
     required this.isOnboarded,
-    required this.likesCount,
-
+    required this.likesCount, // 🟢 Added
   });
 
-  /// Helper getter to show the full name in the UI without extra logic
-  String get fullName => '$firstName $lastName';
+  String get fullName => '$firstName $lastName'.trim().isEmpty ? username : '$firstName $lastName';
 
-  /// Factory to create a UserModel from a Firestore DocumentSnapshot
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
 
     return UserModel(
       id: doc.id,
-      // Use 'is Timestamp' check to prevent the 'Null' subtype error
+      username: data['username']?.toString() ?? '',
+      firstName: data['first_name']?.toString() ?? '',
+      lastName: data['last_name']?.toString() ?? '',
+      userBio: data['user_bio']?.toString() ?? '',
+      profilePictureUrl: data['profile_picture_url']?.toString() ?? '',
+      profileBannerUrl: data['profile_banner_url']?.toString() ?? '',
+      isOnboarded: data['is_onboarded'] == true,
+      likesCount: (data['likes_count'] ?? 0).toInt(), // 🟢 Null-safe parse
       dateOfBirth: data['date_of_birth'] is Timestamp
           ? (data['date_of_birth'] as Timestamp).toDate()
-          : DateTime(2000, 1, 1), // Default value if missing
-      firstName: data['first_name'] ?? '',
-      lastName: data['last_name'] ?? '',
-      profileBannerUrl: data['profile_banner_url'] ?? '',
-      profilePictureUrl: data['profile_picture_url'] ?? '',
-      userBio: data['user_bio'] ?? '',
-      username: data['username'] ?? '',
-
-      isOnboarded: data['is_onboarded'] ?? false,
-      likesCount: (data['likes_count'] ?? 0).toInt(),
-
+          : DateTime(2000, 1, 1),
     );
   }
-
 
   UserModel copyWith({
     String? firstName,
     String? lastName,
     String? userBio,
     bool? isOnboarded,
-    int? likesCount,
+    int? likesCount, // 🟢 Added
   }) {
     return UserModel(
       id: id,
@@ -72,24 +63,21 @@ class UserModel {
       lastName: lastName ?? this.lastName,
       userBio: userBio ?? this.userBio,
       isOnboarded: isOnboarded ?? this.isOnboarded,
-      likesCount: likesCount ?? this.likesCount,
-
+      likesCount: likesCount ?? this.likesCount, // 🟢 Added
     );
   }
 
-  /// Method to convert the model back to a Map for saving to Firestore
   Map<String, dynamic> toMap() {
     return {
-      'date_of_birth': Timestamp.fromDate(dateOfBirth),
+      'username': username,
       'first_name': firstName,
       'last_name': lastName,
-      'profile_banner_url': profileBannerUrl,
-      'profile_picture_url': profilePictureUrl,
       'user_bio': userBio,
-      'username': username,
+      'profile_picture_url': profilePictureUrl,
+      'profile_banner_url': profileBannerUrl,
+      'date_of_birth': Timestamp.fromDate(dateOfBirth),
       'is_onboarded': isOnboarded,
-      'likes_count': likesCount,
-
+      'likes_count': likesCount, // 🟢 Added
     };
   }
 }

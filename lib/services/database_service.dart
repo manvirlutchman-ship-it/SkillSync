@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 // MODEL IMPORTS
 import 'package:skillsync/models/comment_model.dart';
 import 'package:skillsync/models/conversation_model.dart';
@@ -100,6 +101,44 @@ class DatabaseService {
       return [];
     }
   }
+
+  // 🟢 ENHANCED: Fetches skills AND resolves their readable names
+  Future<List<Map<String, dynamic>>> getUserSkillsWithNames(
+    String userId,
+  ) async {
+    try {
+      // 1. Get the bridge documents (UserSkill)
+      var snapshot = await _db
+          .collection('UserSkill')
+          .where('user_id', isEqualTo: _db.doc('User/$userId'))
+          .get();
+
+      // 2. Prepare a list of futures to fetch all skill names in parallel
+      List<Future<Map<String, dynamic>>> folderFutures = snapshot.docs.map((
+        doc,
+      ) async {
+        final data = doc.data();
+        final String skillId = data['skill_id'] is DocumentReference
+            ? (data['skill_id'] as DocumentReference).id
+            : data['skill_id'].toString();
+
+        // Fetch the global skill document to get the name
+        final skillDoc = await _db.collection('Skill').doc(skillId).get();
+        final String skillName = skillDoc.data()?['skill_name'] ?? skillId;
+
+        return {
+          'name': skillName,
+          'type': data['teaching_or_learning'] ?? 'learning',
+        };
+      }).toList();
+
+      // 3. Wait for all names to be fetched
+      return await Future.wait(folderFutures);
+    } catch (e) {
+      debugPrint("Error resolving skill names: $e");
+      return [];
+    }
+  }
   // --- 3. SOCIAL & MESSAGING (Model Integrated) ---
 
   Future<void> createPost(Post post) {
@@ -124,17 +163,25 @@ class DatabaseService {
 
   // 🟢 UPDATED: Accepts UID and a Map (Partial Update)
   // This matches your EditProfileScreen logic.
-  Future<void> updateUser(String uid, Map<String, dynamic> data) async {
+  Future<void> updateUser(String userId, Map<String, dynamic> data) async {
+    // 🟢 Senior Tip: Add a guard clause to prevent empty path errors
+    if (userId.isEmpty) {
+      debugPrint("!!! DB ERROR: Attempted to update user with empty ID !!!");
+      return;
+    }
+
     try {
-      print("!!! UPDATING USER PARTIALLY: $uid !!!");
+      // 'set' with 'merge: true' creates the doc if it's missing,
+      // and only updates the fields you provide, preserving others like likes_count.
+      await _db
+          .collection('User')
+          .doc(userId)
+          .set(data, SetOptions(merge: true));
 
-      // .update() expects a Map, so this passes the data directly to Firestore
-      await _db.collection('User').doc(uid).update(data);
-
-      print("!!! SUCCESS: User profile updated !!!");
+      debugPrint("!!! DB: Profile successfully synced for $userId !!!");
     } catch (e) {
-      print("!!! ERROR updating user: $e !!!");
-      rethrow;
+      debugPrint("!!! DB ERROR in updateUser: $e !!!");
+      rethrow; // This allows the EditProfileScreen to catch the error and stop the spinner
     }
   }
 
@@ -196,12 +243,17 @@ class DatabaseService {
 
   // 🟢 ALSO ADD THIS: Needed to list your chats on the Home Screen
   Stream<List<ConversationModel>> getMyConversations(String userId) {
-    return _db.collection('Conversation')
+    return _db
+        .collection('Conversation')
         // 🟢 ONLY chats where the current user ID is in the participants list
-        .where('participant_ids', arrayContains: userId) 
+        .where('participant_ids', arrayContains: userId)
         .orderBy('created_at', descending: true)
         .snapshots()
-        .map((snap) => snap.docs.map((doc) => ConversationModel.fromFirestore(doc)).toList());
+        .map(
+          (snap) => snap.docs
+              .map((doc) => ConversationModel.fromFirestore(doc))
+              .toList(),
+        );
   }
 
   // 🟢 ADD THIS: Mark notification as handled/read
@@ -254,26 +306,25 @@ class DatabaseService {
     }
   }
 
+  // 🟢 THE LIKE FUNCTION
+  Future<void> likeUser(String targetUserId, String myId) async {
+    // We create a unique ID based on both users: "myId_targetId"
+    // If this document exists, Firestore won't create a second one.
+    final likeId = "${myId}_$targetUserId";
+    final likeRef = _db.collection('Like').doc(likeId);
 
-
-// 🟢 THE LIKE FUNCTION
-Future<void> likeUser(String targetUserId, String myId) async {
-  // We create a unique ID based on both users: "myId_targetId"
-  // If this document exists, Firestore won't create a second one.
-  final likeId = "${myId}_$targetUserId";
-  final likeRef = _db.collection('Like').doc(likeId);
-
-  final doc = await likeRef.get();
-  if (!doc.exists) {
-    // 1. Create the like record
-    await likeRef.set({'from': myId, 'to': targetUserId});
-    // 2. Increment the user's count
-    await _db.collection('User').doc(targetUserId).update({
-      'likes_count': FieldValue.increment(1),
-    });
+    final doc = await likeRef.get();
+    if (!doc.exists) {
+      // 1. Create the like record
+      await likeRef.set({'from': myId, 'to': targetUserId});
+      // 2. Increment the user's count
+      await _db.collection('User').doc(targetUserId).update({
+        'likes_count': FieldValue.increment(1),
+      });
+    }
   }
-}
-// 🟢 ADD THIS: Check if a like record exists
+
+  // 🟢 ADD THIS: Check if a like record exists
   Future<bool> checkIfLiked(String myId, String targetUserId) async {
     try {
       final String likeDocId = "${myId}_$targetUserId";
@@ -289,7 +340,7 @@ Future<void> likeUser(String targetUserId, String myId) async {
     try {
       // 1. Delete the main User document
       await _db.collection('User').doc(userId).delete();
-      
+
       // 2. Note: Ideally, you'd delete UserSkill records here too.
       // For a fast implementation, deleting the main profile is the priority.
       print("Firestore data deleted for $userId");
@@ -297,5 +348,17 @@ Future<void> likeUser(String targetUserId, String myId) async {
       print("Error deleting Firestore data: $e");
     }
   }
+
+  // 🟢 ADD THIS: Fetch all available skills from the global library
+  Future<List<SkillModel>> getGlobalSkills() async {
+    try {
+      final snapshot = await _db.collection('Skill').get();
+      return snapshot.docs.map((doc) => SkillModel.fromFirestore(doc)).toList();
+    } catch (e) {
+      debugPrint("Error fetching global skills: $e");
+      return [];
+    }
+  }
+
   // Add more methods as needed using the same .toMap() pattern
 }

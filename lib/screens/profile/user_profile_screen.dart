@@ -318,77 +318,81 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       ),
     );
   }
-
-  Widget _buildSkillsSection(DatabaseService dbService, String userId) {
-    return FutureBuilder<List<UserSkillModel>>(
-      future: dbService.getUserSkills(userId),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(20.0),
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Color(0xFF86868B),
-              ),
+Widget _buildSkillsSection(DatabaseService dbService, String userId) {
+  return FutureBuilder<List<Map<String, dynamic>>>(
+    future: dbService.getUserSkillsWithNames(userId),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(
+          child: Padding(
+            padding: EdgeInsets.all(20.0),
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Color(0xFF86868B),
             ),
-          );
-        }
-        final allSkills = snapshot.data ?? [];
-        final teachingSkills = allSkills
-            .where((s) => s.teachingOrLearning == 'teaching')
-            .toList();
-        final learningSkills = allSkills
-            .where((s) => s.teachingOrLearning == 'learning')
-            .toList();
-
-        return Column(
-          children: [
-            _buildSkillGroup("TEACHING", teachingSkills),
-            const SizedBox(height: 32),
-            _buildSkillGroup("LEARNING", learningSkills),
-          ],
+          ),
         );
-      },
-    );
-  }
+      }
 
-  Widget _buildSkillGroup(String title, List<UserSkillModel> skills) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 12),
-          child: Semantics(
-            header: true,
-            child: Text(
-              title,
-              style: const TextStyle(
-                color: Color(0xFF86868B),
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.2,
-              ),
+      final allSkills = snapshot.data ?? [];
+
+      final teachingSkills =
+          allSkills.where((s) => s['type'] == 'teaching').toList();
+
+      final learningSkills =
+          allSkills.where((s) => s['type'] == 'learning').toList();
+
+      return Column(
+        children: [
+          _buildSkillSection("TEACHING", teachingSkills),
+          const SizedBox(height: 32),
+          _buildSkillSection("LEARNING", learningSkills),
+        ],
+      );
+    },
+  );
+}
+  // Update the parameter type to List<Map<String, dynamic>>
+  // Update the parameter type to List<Map<String, dynamic>>
+Widget _buildSkillSection(String title, List<Map<String, dynamic>> skills) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Align(
+          alignment: Alignment.centerLeft, // 🟢 Fix alignment for all headers
+          child: Text(
+            title, 
+            style: const TextStyle(
+              color: Color(0xFF86868B),
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.2,
             ),
           ),
         ),
-        if (skills.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(left: 4),
-            child: Text(
-              "No skills added yet.",
-              style: TextStyle(color: Color(0xFF86868B), fontSize: 14),
-            ),
-          )
-        else
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: skills.map((s) => _SkillTile(s.skillId)).toList(),
+      ),
+      if (skills.isEmpty)
+        const Padding(
+          padding: EdgeInsets.only(left: 4),
+          child: Text(
+            "No skills added yet.", 
+            style: TextStyle(
+              color: Color(0xFF86868B),
+              fontSize: 14
+            )
           ),
-      ],
-    );
-  }
+        )
+      else
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: skills.map((s) => _SkillTile(s['name'])).toList(), // 🟢 Pass the resolved 'name'
+        ),
+    ],
+  );
+}
 }
 
 class _SkillTile extends StatelessWidget {

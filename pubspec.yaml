@@ -1,8 +1,7 @@
 name: skillsync
 description: "A new Flutter project."
 
-publish_to: 'none' 
-
+publish_to: 'none'
 
 version: 1.0.0+1
 
@@ -17,19 +16,26 @@ dependencies:
   cloud_firestore: ^5.6.1
   firebase_auth: ^5.4.1
   provider: ^6.1.2
-  google_sign_in: 6.2.1 #added for google 
+  google_sign_in: 6.2.1
   intl: ^0.20.2
-  
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1  # 👈 ADDED
 
 flutter:
 
-
   uses-material-design: true
+
   assets:
     - assets/
+
+# 👇 ADD THIS SECTION AT THE BOTTOM (outside flutter:)
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  adaptive_icon_background: "#F5F5F7"
+  adaptive_icon_foreground: "assets/icon/app_icon.png"

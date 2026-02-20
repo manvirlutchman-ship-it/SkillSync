@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:skillsync/models/skill_model.dart'; // 🟢 Added
 import 'package:skillsync/providers/user_provider.dart';
 import 'package:skillsync/services/database_service.dart';
 import 'package:skillsync/widgets/primary_button.dart';
@@ -9,41 +10,60 @@ class OnboardingNewSkillsScreen extends StatefulWidget {
   const OnboardingNewSkillsScreen({super.key});
 
   @override
-  State<OnboardingNewSkillsScreen> createState() =>
-      _OnboardingNewSkillsScreenState();
+  State<OnboardingNewSkillsScreen> createState() => _OnboardingNewSkillsScreenState();
 }
 
 class _OnboardingNewSkillsScreenState extends State<OnboardingNewSkillsScreen> {
-  final Set<String> _selectedSkills = {};
-  bool _isLoading = false;
+  final DatabaseService _dbService = DatabaseService();
 
-  final List<String> categories = [
-    'Programming',
-    'Design',
-    'Marketing',
-    'Business',
-    'Languages',
-  ];
-  final List<String> skills = [
-    'Flutter',
-    'React',
-    'UI Design',
-    'UX Research',
-    'Python',
-    'Java',
-    'Public Speaking',
-    'Project Management',
-  ];
+  // 🟢 State Variables for Dynamic Data
+  List<SkillModel> _allSkills = [];
+  List<String> _categories = ['All'];
+  String _selectedCategory = 'All';
+  final Set<String> _selectedSkillIds = {}; 
+
+  bool _isPageLoading = true;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSkillsFromFirestore();
+  }
+
+  // 🟢 Fetch real data from your 'Skill' collection
+  Future<void> _loadSkillsFromFirestore() async {
+    final skills = await _dbService.getGlobalSkills();
+    
+    // Extract unique categories dynamically
+    final dynamicCategories = skills.map((s) => s.skillCategory).toSet().toList();
+    dynamicCategories.sort();
+
+    if (mounted) {
+      setState(() {
+        _allSkills = skills;
+        _categories = ['All', ...dynamicCategories];
+        _isPageLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    // Filter logic for categories
+    final filteredSkills = _selectedCategory == 'All'
+        ? _allSkills
+        : _allSkills.where((s) => s.skillCategory == _selectedCategory).toList();
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
-        child: Padding(
+        child: _isPageLoading 
+          ? const Center(child: CircularProgressIndicator()) 
+          : Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           child: Container(
             width: double.infinity,
@@ -56,7 +76,7 @@ class _OnboardingNewSkillsScreenState extends State<OnboardingNewSkillsScreen> {
                   color: Colors.black.withOpacity(0.03),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
-                ),
+                )
               ],
             ),
             child: Column(
@@ -66,17 +86,13 @@ class _OnboardingNewSkillsScreenState extends State<OnboardingNewSkillsScreen> {
 
                 const SizedBox(height: 16),
 
-                // Semantic Header
-                Semantics(
-                  header: true,
-                  child: Text(
-                    'What do you want to learn?',
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.primary,
-                      letterSpacing: -0.8,
-                    ),
+                Text(
+                  'What do you want to learn?',
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.primary,
+                    letterSpacing: -0.8,
                   ),
                 ),
 
@@ -93,31 +109,55 @@ class _OnboardingNewSkillsScreenState extends State<OnboardingNewSkillsScreen> {
 
                 const SizedBox(height: 20),
 
-                _buildSearchBar(colorScheme),
+                // 🏷 Category Scroll (Dynamic)
+                SizedBox(
+                  height: 36,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _categories.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final cat = _categories[index];
+                      final isSelected = _selectedCategory == cat;
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedCategory = cat),
+                        child: _buildCategoryChip(cat, isSelected, colorScheme),
+                      );
+                    },
+                  ),
+                ),
 
                 const SizedBox(height: 20),
 
-                // Categories
-                _buildCategoryList(colorScheme),
+                // 🧱 Real Skills Grid
+                Expanded(
+                  child: filteredSkills.isEmpty 
+                    ? const Center(child: Text("No skills found in this category."))
+                    : GridView.builder(
+                        physics: const BouncingScrollPhysics(),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 2.5,
+                        ),
+                        itemCount: filteredSkills.length,
+                        itemBuilder: (context, index) {
+                          final skill = filteredSkills[index];
+                          final isSelected = _selectedSkillIds.contains(skill.id);
+                          return _buildSkillCard(skill, isSelected, colorScheme);
+                        },
+                      ),
+                ),
 
                 const SizedBox(height: 20),
 
-                // Skills Grid
-                Expanded(child: _buildSkillsGrid(colorScheme)),
-
-                const SizedBox(height: 20),
-
-                // Button with loading state semantics
-                _isLoading
-                    ? Semantics(
-                        label: "Saving preferences",
-                        child: const Center(child: CircularProgressIndicator()),
-                      )
+                _isSaving
+                    ? const Center(child: CircularProgressIndicator())
                     : PrimaryButton(
-                        label: 'CONFIRM (${_selectedSkills.length})',
+                        label: 'CONFIRM (${_selectedSkillIds.length})',
                         onPressed: _handleConfirm,
                         height: 50,
-                        // Ensure the label (with count) is read when focused
                       ),
               ],
             ),
@@ -130,178 +170,110 @@ class _OnboardingNewSkillsScreenState extends State<OnboardingNewSkillsScreen> {
   // --- LOGIC ---
 
   void _handleConfirm() async {
-    if (_selectedSkills.isEmpty) {
+    if (_selectedSkillIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please select at least one skill you want to learn"),
-        ),
+        const SnackBar(content: Text("Please select at least one skill you want to learn")),
       );
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() => _isSaving = true);
 
     try {
       final userId = FirebaseAuth.instance.currentUser?.uid;
 
       if (userId != null) {
-        // Save selected skills
+        // Save selected skill IDs as 'learning'
         await DatabaseService().saveUserSkills(
           userId: userId,
-          skills: _selectedSkills.toList(),
+          skills: _selectedSkillIds.toList(),
           type: "learning",
         );
 
-        // Mark onboarding as completed
-        await DatabaseService().completeOnboarding(userId);
-
-        // Refresh provider so main.dart detects onboarding change
         if (mounted) {
-          await context.read<UserProvider>().fetchUser(userId);
-          
-          // Navigate to Edit Profile
+          // Navigate to Step 3: Edit Profile Setup
           Navigator.pushNamed(context, '/edit_profile');
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error saving interests: $e")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error saving interests: $e")),
+        );
       }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
-  // --- UI HELPER WIDGETS ---
+  // --- UI HELPERS ---
 
   Widget _buildStepIndicator(ColorScheme colorScheme) {
-    return Semantics(
-      label: "Step 2 of 2",
-      excludeSemantics: true, // Read label only, ignore styling
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F7),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Text(
+        'STEP 2 OF 3', // 🟢 Updated to 3
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: colorScheme.secondary,
+          letterSpacing: 1.1,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryChip(String label, bool isSelected, ColorScheme colorScheme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: isSelected ? colorScheme.primary : const Color(0xFFF5F5F7),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Text(
+        label.toUpperCase(),
+        style: TextStyle(
+          color: isSelected ? Colors.white : colorScheme.primary,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkillCard(SkillModel skill, bool isSelected, ColorScheme colorScheme) {
+    return GestureDetector(
+      onTap: () => setState(
+        () => isSelected ? _selectedSkillIds.remove(skill.id) : _selectedSkillIds.add(skill.id),
+      ),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F7),
-          borderRadius: BorderRadius.circular(30),
+          color: isSelected ? colorScheme.primary : Colors.white,
+          border: Border.all(
+            color: isSelected ? colorScheme.primary : const Color(0xFFE8E8ED),
+            width: 1.5,
+          ),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Text(
-          'STEP 2 OF 2',
+          skill.skillName,
+          textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-            color: colorScheme.secondary,
-            letterSpacing: 1.1,
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+            color: isSelected ? Colors.white : colorScheme.primary,
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildSearchBar(ColorScheme colorScheme) {
-    return TextField(
-      style: TextStyle(color: colorScheme.primary, fontSize: 14),
-      textInputAction: TextInputAction.search, // Keyboard shows "Search"
-      decoration: InputDecoration(
-        hintText: 'Search skills...',
-        prefixIcon: Icon(
-          Icons.search_rounded,
-          color: colorScheme.secondary,
-          size: 20,
-        ),
-        isDense: true,
-      ),
-    );
-  }
-
-  Widget _buildCategoryList(ColorScheme colorScheme) {
-    return SizedBox(
-      height: 36,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF5F5F7),
-            borderRadius: BorderRadius.circular(30),
-          ),
-          child: Text(
-            categories[index],
-            style: TextStyle(
-              color: colorScheme.primary,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSkillsGrid(ColorScheme colorScheme) {
-    return GridView.builder(
-      physics: const BouncingScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 2.5,
-      ),
-      itemCount: skills.length,
-      itemBuilder: (context, index) {
-        final skill = skills[index];
-        final isSelected = _selectedSkills.contains(skill);
-        
-        // Wrap in Semantics to handle "Selected" state announcements automatically
-        return Semantics(
-          button: true,
-          label: skill,
-          selected: isSelected,
-          hint: isSelected ? "Double tap to remove" : "Double tap to add",
-          child: GestureDetector(
-            onTap: () => setState(
-              () => isSelected
-                  ? _selectedSkills.remove(skill)
-                  : _selectedSkills.add(skill),
-            ),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: isSelected ? colorScheme.primary : Colors.white,
-                border: Border.all(
-                  color: isSelected
-                      ? colorScheme.primary
-                      : const Color(0xFFE8E8ED),
-                  width: 1.5,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  if (!isSelected)
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.02),
-                      blurRadius: 5,
-                      offset: const Offset(0, 2),
-                    ),
-                ],
-              ),
-              child: Text(
-                skill,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: isSelected ? Colors.white : colorScheme.primary,
-                ),
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }
