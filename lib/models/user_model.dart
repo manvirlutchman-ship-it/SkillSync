@@ -46,24 +46,28 @@ class UserModel {
     );
   }
 
+  // Update this method inside your UserModel class
   UserModel copyWith({
     String? firstName,
     String? lastName,
     String? userBio,
     bool? isOnboarded,
-    int? likesCount, // 🟢 Added
+    int? likesCount,
+    String? profilePictureUrl, // 🟢 Added
+    String? profileBannerUrl,  // 🟢 Added
   }) {
     return UserModel(
       id: id,
       username: username,
       dateOfBirth: dateOfBirth,
-      profilePictureUrl: profilePictureUrl,
-      profileBannerUrl: profileBannerUrl,
+      // Use the new value if provided, otherwise keep the old one
+      profilePictureUrl: profilePictureUrl ?? this.profilePictureUrl, 
+      profileBannerUrl: profileBannerUrl ?? this.profileBannerUrl,
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
       userBio: userBio ?? this.userBio,
       isOnboarded: isOnboarded ?? this.isOnboarded,
-      likesCount: likesCount ?? this.likesCount, // 🟢 Added
+      likesCount: likesCount ?? this.likesCount,
     );
   }
 

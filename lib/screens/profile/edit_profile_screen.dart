@@ -19,6 +19,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _isSaving = false;
   bool _isLoadingSkills = false;
 
+  // 🟢 ADD THESE TWO LINES:
+  final List<String> _avatars = List.generate(
+    9,
+    (index) => 'assets/profilephoto/${index + 1}.jpg',
+  );
+  String? _selectedAvatarPath;
+
   @override
   void initState() {
     super.initState();
@@ -26,6 +33,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _firstNameController = TextEditingController(text: user?.firstName ?? '');
     _lastNameController = TextEditingController(text: user?.lastName ?? '');
     _bioController = TextEditingController(text: user?.userBio ?? '');
+
+    // 🟢 INITIALIZE SELECTION:
+    _selectedAvatarPath = user?.profilePictureUrl;
   }
 
   @override
@@ -37,35 +47,66 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _saveProfile(bool isFirstTime) async {
-    // Dismiss keyboard to ensure screen reader focus isn't trapped
+    // Dismiss keyboard
     FocusManager.instance.primaryFocus?.unfocus();
 
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() => _isSaving = true);
     final userProvider = context.read<UserProvider>();
     final user = userProvider.user;
 
     if (user != null) {
       try {
+        final String fName = _firstNameController.text.trim();
+        final String lName = _lastNameController.text.trim();
+        final String bio = _bioController.text.trim();
+
+        // 1️⃣ Update Firestore (merge for safety)
         await DatabaseService().updateUser(user.id, {
-          'first_name': _firstNameController.text.trim(),
-          'last_name': _lastNameController.text.trim(),
-          'user_bio': _bioController.text.trim(),
+          'first_name': fName,
+          'last_name': lName,
+          'user_bio': bio,
           'is_onboarded': true,
+          'profile_picture_url': _selectedAvatarPath ?? user.profilePictureUrl,
         });
 
-        userProvider.updateLocalUser(user.copyWith(
-          firstName: _firstNameController.text.trim(),
-          lastName: _lastNameController.text.trim(),
-          userBio: _bioController.text.trim(),
-          isOnboarded: true,
-        ));
+        // 2️⃣ Update Provider LOCALLY
+        userProvider.updateLocalUser(
+          user.copyWith(
+            firstName: fName,
+            lastName: lName,
+            userBio: bio,
+            isOnboarded: true,
+            profilePictureUrl: _selectedAvatarPath ?? user.profilePictureUrl,
+          ),
+        );
 
         if (mounted) {
-          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+          if (isFirstTime) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/home',
+              (route) => false,
+            );
+          } else {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Profile updated successfully")),
+            );
+          }
         }
       } catch (e) {
+        debugPrint("!!! SAVE ERROR: $e !!!");
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Error saving: $e"),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+      } finally {
         if (mounted) setState(() => _isSaving = false);
       }
     }
@@ -113,7 +154,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (mounted) Navigator.pushNamed(context, '/onboarding_current');
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     } finally {
       if (mounted) setState(() => _isLoadingSkills = false);
@@ -165,6 +208,47 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         const SizedBox(height: 24),
                       ],
 
+                      // Inside the Column of EditProfileScreen body:
+                      _buildSectionHeader("CHOOSE AVATAR"),
+                      const SizedBox(height: 16),
+
+                      SizedBox(
+                        height: 80,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _avatars.length,
+                          itemBuilder: (context, index) {
+                            final avatarPath = _avatars[index];
+                            final isSelected =
+                                _selectedAvatarPath == avatarPath;
+
+                            return GestureDetector(
+                              onTap: () => setState(
+                                () => _selectedAvatarPath = avatarPath,
+                              ),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                margin: const EdgeInsets.only(right: 12),
+                                padding: const EdgeInsets.all(3),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? Colors.black
+                                        : Colors.transparent,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: CircleAvatar(
+                                  radius: 30,
+                                  backgroundImage: AssetImage(avatarPath),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 32),
                       _buildSectionHeader("PERSONAL INFORMATION"),
                       const SizedBox(height: 12),
 
@@ -193,10 +277,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 labelText: 'First Name',
                                 hintText: 'Enter your first name',
                               ),
-                              validator: (v) => v!.isEmpty ? "Enter your first name" : null,
+                              validator: (v) =>
+                                  v!.isEmpty ? "Enter your first name" : null,
                             ),
                             const SizedBox(height: 16),
-                            
+
                             TextFormField(
                               controller: _lastNameController,
                               style: const TextStyle(color: Colors.black),
@@ -207,10 +292,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 labelText: 'Last Name',
                                 hintText: 'Enter your last name',
                               ),
-                              validator: (v) => v!.isEmpty ? "Enter your last name" : null,
+                              validator: (v) =>
+                                  v!.isEmpty ? "Enter your last name" : null,
                             ),
                             const SizedBox(height: 16),
-                            
+
                             TextFormField(
                               controller: _bioController,
                               style: const TextStyle(color: Colors.black),
@@ -234,13 +320,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         const SizedBox(height: 32),
                         _buildSectionHeader("SKILLS"),
                         const SizedBox(height: 12),
-                        
+
                         // Merge Semantics to make the entire tile a single clickable button
                         MergeSemantics(
                           child: Semantics(
                             button: true,
                             label: "Update Skills",
-                            hint: "Resets current skills and starts selection over",
+                            hint:
+                                "Resets current skills and starts selection over",
                             child: Container(
                               decoration: BoxDecoration(
                                 color: Colors.white,
@@ -301,11 +388,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           ? Semantics(
                               label: "Saving profile changes",
                               child: const Center(
-                                child: CircularProgressIndicator(color: Colors.black),
+                                child: CircularProgressIndicator(
+                                  color: Colors.black,
+                                ),
                               ),
                             )
                           : PrimaryButton(
-                              label: isFirstTime ? "FINISH SETUP" : "SAVE CHANGES",
+                              label: isFirstTime
+                                  ? "FINISH SETUP"
+                                  : "SAVE CHANGES",
                               onPressed: () => _saveProfile(isFirstTime),
                               height: 48, // Ensure minimum touch target
                             ),

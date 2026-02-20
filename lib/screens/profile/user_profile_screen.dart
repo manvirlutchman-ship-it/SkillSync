@@ -6,6 +6,7 @@ import 'package:skillsync/services/database_service.dart';
 import 'package:skillsync/services/auth_service.dart';
 import 'package:skillsync/models/userskill_model.dart';
 import 'package:skillsync/models/user_model.dart';
+import 'package:skillsync/widgets/avatar_image.dart';
 // Note: Ensure your rating_row and bottom_nav are also accessible
 import 'package:skillsync/widgets/bottom_nav.dart';
 
@@ -202,21 +203,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        Semantics(
-          label: 'Profile banner image',
-          image: true,
-          child: Container(
-            height: 240,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8E8ED),
-              image: user.profileBannerUrl.isNotEmpty
-                  ? DecorationImage(
-                      image: NetworkImage(user.profileBannerUrl),
-                      fit: BoxFit.cover,
-                    )
-                  : null,
-            ),
+        Container(
+          height: 240,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: const Color(0xFFE8E8ED),
+            image: user.profileBannerUrl.isNotEmpty
+                ? DecorationImage(
+                    image: NetworkImage(user.profileBannerUrl),
+                    fit: BoxFit.cover,
+                  )
+                : null,
           ),
         ),
         Positioned(
@@ -224,33 +221,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           left: 0,
           right: 0,
           child: Center(
-            child: Semantics(
-              label: 'Profile picture of ${user.fullName}',
-              image: true,
-              child: Container(
-                padding: const EdgeInsets.all(5),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF5F5F7),
-                  shape: BoxShape.circle,
-                ),
-                child: CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Colors.white,
-                  child: CircleAvatar(
-                    radius: 47,
-                    backgroundColor: const Color(0xFFE8E8ED),
-                    backgroundImage: user.profilePictureUrl.isNotEmpty
-                        ? NetworkImage(user.profilePictureUrl)
-                        : null,
-                    child: user.profilePictureUrl.isEmpty
-                        ? const Icon(
-                            Icons.person_rounded,
-                            color: Color(0xFF86868B),
-                            size: 45,
-                          )
-                        : null,
-                  ),
-                ),
+            child: Container(
+              padding: const EdgeInsets.all(5),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF5F5F7), // Matches background
+                shape: BoxShape.circle,
+              ),
+              child: AvatarImage(
+                // 🟢 THE FIX: Use our new Smart Widget
+                path: user.profilePictureUrl,
+                radius: 50,
               ),
             ),
           ),
@@ -318,81 +298,84 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       ),
     );
   }
-Widget _buildSkillsSection(DatabaseService dbService, String userId) {
-  return FutureBuilder<List<Map<String, dynamic>>>(
-    future: dbService.getUserSkillsWithNames(userId),
-    builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center(
-          child: Padding(
-            padding: EdgeInsets.all(20.0),
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: Color(0xFF86868B),
+
+  Widget _buildSkillsSection(DatabaseService dbService, String userId) {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: dbService.getUserSkillsWithNames(userId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20.0),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Color(0xFF86868B),
+              ),
             ),
-          ),
+          );
+        }
+
+        final allSkills = snapshot.data ?? [];
+
+        final teachingSkills = allSkills
+            .where((s) => s['type'] == 'teaching')
+            .toList();
+
+        final learningSkills = allSkills
+            .where((s) => s['type'] == 'learning')
+            .toList();
+
+        return Column(
+          children: [
+            _buildSkillSection("TEACHING", teachingSkills),
+            const SizedBox(height: 32),
+            _buildSkillSection("LEARNING", learningSkills),
+          ],
         );
-      }
+      },
+    );
+  }
 
-      final allSkills = snapshot.data ?? [];
-
-      final teachingSkills =
-          allSkills.where((s) => s['type'] == 'teaching').toList();
-
-      final learningSkills =
-          allSkills.where((s) => s['type'] == 'learning').toList();
-
-      return Column(
-        children: [
-          _buildSkillSection("TEACHING", teachingSkills),
-          const SizedBox(height: 32),
-          _buildSkillSection("LEARNING", learningSkills),
-        ],
-      );
-    },
-  );
-}
   // Update the parameter type to List<Map<String, dynamic>>
   // Update the parameter type to List<Map<String, dynamic>>
-Widget _buildSkillSection(String title, List<Map<String, dynamic>> skills) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Align(
-          alignment: Alignment.centerLeft, // 🟢 Fix alignment for all headers
-          child: Text(
-            title, 
-            style: const TextStyle(
-              color: Color(0xFF86868B),
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.2,
+  Widget _buildSkillSection(String title, List<Map<String, dynamic>> skills) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Align(
+            alignment: Alignment.centerLeft, // 🟢 Fix alignment for all headers
+            child: Text(
+              title,
+              style: const TextStyle(
+                color: Color(0xFF86868B),
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.2,
+              ),
             ),
           ),
         ),
-      ),
-      if (skills.isEmpty)
-        const Padding(
-          padding: EdgeInsets.only(left: 4),
-          child: Text(
-            "No skills added yet.", 
-            style: TextStyle(
-              color: Color(0xFF86868B),
-              fontSize: 14
-            )
+        if (skills.isEmpty)
+          const Padding(
+            padding: EdgeInsets.only(left: 4),
+            child: Text(
+              "No skills added yet.",
+              style: TextStyle(color: Color(0xFF86868B), fontSize: 14),
+            ),
+          )
+        else
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: skills
+                .map((s) => _SkillTile(s['name']))
+                .toList(), // 🟢 Pass the resolved 'name'
           ),
-        )
-      else
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: skills.map((s) => _SkillTile(s['name'])).toList(), // 🟢 Pass the resolved 'name'
-        ),
-    ],
-  );
-}
+      ],
+    );
+  }
 }
 
 class _SkillTile extends StatelessWidget {

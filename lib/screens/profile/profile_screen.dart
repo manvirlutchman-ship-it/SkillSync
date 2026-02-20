@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:skillsync/models/user_model.dart';
 import 'package:skillsync/services/database_service.dart';
+import 'package:skillsync/widgets/avatar_image.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -23,7 +24,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.didChangeDependencies();
     // Senior Tip: Grabbing ModalRoute arguments should happen here, not in build.
     if (!_hasInitialized) {
-      final UserModel? user = ModalRoute.of(context)?.settings.arguments as UserModel?;
+      final UserModel? user =
+          ModalRoute.of(context)?.settings.arguments as UserModel?;
       if (user != null) {
         _checkIfAlreadyLiked(user.id);
       }
@@ -42,8 +44,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final UserModel? user = ModalRoute.of(context)?.settings.arguments as UserModel?;
-    if (user == null) return const Scaffold(body: Center(child: Text("Error loading profile")));
+    final UserModel? user =
+        ModalRoute.of(context)?.settings.arguments as UserModel?;
+    if (user == null)
+      return const Scaffold(body: Center(child: Text("Error loading profile")));
 
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -56,7 +60,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         elevation: 0,
         leading: IconButton(
           tooltip: "Back",
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: colorScheme.primary, size: 20),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: colorScheme.primary,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text("View Profile"),
@@ -72,7 +80,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 55),
-                  
+
                   // Name & Handle
                   Semantics(
                     header: true,
@@ -88,7 +96,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text('@${user.username}', style: const TextStyle(color: Color(0xFF86868B), fontSize: 16)),
+                  Text(
+                    '@${user.username}',
+                    style: const TextStyle(
+                      color: Color(0xFF86868B),
+                      fontSize: 16,
+                    ),
+                  ),
 
                   const SizedBox(height: 24),
 
@@ -100,19 +114,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10)),
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
                       ],
                     ),
                     child: Column(
                       children: [
                         Text(
-                          user.userBio.isNotEmpty ? user.userBio : "No bio provided.",
+                          user.userBio.isNotEmpty
+                              ? user.userBio
+                              : "No bio provided.",
                           textAlign: TextAlign.center,
-                          style: const TextStyle(color: Color(0xFF1D1D1F), fontSize: 15, height: 1.5),
+                          style: const TextStyle(
+                            color: Color(0xFF1D1D1F),
+                            fontSize: 15,
+                            height: 1.5,
+                          ),
                         ),
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 20),
-                          child: Divider(color: Color(0xFFF5F5F7), thickness: 1.5),
+                          child: Divider(
+                            color: Color(0xFFF5F5F7),
+                            thickness: 1.5,
+                          ),
                         ),
                         _buildLikeSection(user),
                       ],
@@ -130,16 +157,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         return const Center(
                           child: Padding(
                             padding: EdgeInsets.all(20.0),
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF86868B)),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Color(0xFF86868B),
+                            ),
                           ),
                         );
                       }
-                      
+
                       final allSkills = snapshot.data ?? [];
-                      
+
                       // Filter the resolved maps by the 'type' key
-                      final teachingSkills = allSkills.where((s) => s['type'] == 'teaching').toList();
-                      final learningSkills = allSkills.where((s) => s['type'] == 'learning').toList();
+                      final teachingSkills = allSkills
+                          .where((s) => s['type'] == 'teaching')
+                          .toList();
+                      final learningSkills = allSkills
+                          .where((s) => s['type'] == 'learning')
+                          .toList();
 
                       return Column(
                         children: [
@@ -171,11 +205,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         Text(
           '$count LIKES',
-          style: const TextStyle(color: Color(0xFF1D1D1F), fontWeight: FontWeight.w700, fontSize: 14, letterSpacing: 1.1),
+          style: const TextStyle(
+            color: Color(0xFF1D1D1F),
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+            letterSpacing: 1.1,
+          ),
         ),
         const SizedBox(width: 12),
         if (_isCheckingLikeStatus)
-          const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+          const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
         else
           IconButton(
             padding: EdgeInsets.zero,
@@ -202,16 +245,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Stack(
       clipBehavior: Clip.none,
       children: [
+        // Banner
         Container(
           height: 240,
           width: double.infinity,
           decoration: BoxDecoration(
             color: const Color(0xFFE8E8ED),
             image: user.profileBannerUrl.isNotEmpty
-                ? DecorationImage(image: NetworkImage(user.profileBannerUrl), fit: BoxFit.cover)
+                ? DecorationImage(
+                    image: NetworkImage(user.profileBannerUrl),
+                    fit: BoxFit.cover,
+                  )
                 : null,
           ),
         ),
+        // Profile avatar
         Positioned(
           bottom: -45,
           left: 0,
@@ -219,12 +267,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Center(
             child: Container(
               padding: const EdgeInsets.all(5),
-              decoration: const BoxDecoration(color: Color(0xFFF5F5F7), shape: BoxShape.circle),
-              child: CircleAvatar(
-                radius: 50,
-                backgroundColor: Colors.white,
-                backgroundImage: user.profilePictureUrl.isNotEmpty ? NetworkImage(user.profilePictureUrl) : null,
-                child: user.profilePictureUrl.isEmpty ? const Icon(Icons.person_rounded, color: Color(0xFF86868B), size: 45) : null,
+              decoration: const BoxDecoration(
+                color: Color(0xFFF5F5F7),
+                shape: BoxShape.circle,
+              ),
+              child: AvatarImage(
+                path: user.profilePictureUrl,
+                radius: 50, // directly using 50
               ),
             ),
           ),
@@ -239,16 +288,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         Text(
           title,
-          style: const TextStyle(color: Color(0xFF86868B), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.2),
+          style: const TextStyle(
+            color: Color(0xFF86868B),
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.2,
+          ),
         ),
         const SizedBox(height: 12),
         if (skills.isEmpty)
-          const Text("None added.", style: TextStyle(color: Color(0xFF86868B), fontSize: 14))
+          const Text(
+            "None added.",
+            style: TextStyle(color: Color(0xFF86868B), fontSize: 14),
+          )
         else
           Wrap(
             spacing: 10,
             runSpacing: 10,
-            children: skills.map((s) => _SkillTile(s['name'])).toList(), // 🟢 Pass Resolved Name
+            children: skills
+                .map((s) => _SkillTile(s['name']))
+                .toList(), // 🟢 Pass Resolved Name
           ),
       ],
     );
@@ -267,12 +326,20 @@ class _SkillTile extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Text(
         label,
-        style: const TextStyle(color: Color(0xFF1D1D1F), fontSize: 14, fontWeight: FontWeight.w600),
+        style: const TextStyle(
+          color: Color(0xFF1D1D1F),
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
