@@ -13,6 +13,18 @@ class CommunityService {
     return _posts.orderBy('createdAt', descending: true).snapshots();
   }
 
+  Future<void> deleteComment({
+      required String postId,
+      required String commentId,
+    }) async {
+      await FirebaseFirestore.instance
+          .collection('community_posts')
+          .doc(postId)
+          .collection('comments')
+          .doc(commentId)
+          .delete();
+    }
+
   Future<void> createPost({
     required String text,
     required String authorId,
