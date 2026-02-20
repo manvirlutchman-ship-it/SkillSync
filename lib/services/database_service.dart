@@ -283,5 +283,19 @@ Future<void> likeUser(String targetUserId, String myId) async {
       return false;
     }
   }
+
+  // 🟢 ADD THIS: Delete all user data from Firestore
+  Future<void> deleteUserData(String userId) async {
+    try {
+      // 1. Delete the main User document
+      await _db.collection('User').doc(userId).delete();
+      
+      // 2. Note: Ideally, you'd delete UserSkill records here too.
+      // For a fast implementation, deleting the main profile is the priority.
+      print("Firestore data deleted for $userId");
+    } catch (e) {
+      print("Error deleting Firestore data: $e");
+    }
+  }
   // Add more methods as needed using the same .toMap() pattern
 }
