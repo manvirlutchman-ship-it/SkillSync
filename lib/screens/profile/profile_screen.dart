@@ -14,16 +14,13 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   int localLikesOffset = 0;
   bool hasLikedLocally = false;
-
   bool hasLikedFromDb = false;
   bool isCheckingLikeStatus = true;
   final String myId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
   Future<void> _checkIfAlreadyLiked(String viewedUserId) async {
     final liked = await DatabaseService().checkIfLiked(myId, viewedUserId);
-
     if (!mounted) return;
-
     setState(() {
       hasLikedFromDb = liked;
       isCheckingLikeStatus = false;
@@ -32,16 +29,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 🟢 EXTRACT THE USER DATA passed from MatchingScreen
-    final UserModel? user =
-        ModalRoute.of(context)?.settings.arguments as UserModel?;
+    final UserModel? user = ModalRoute.of(context)?.settings.arguments as UserModel?;
 
-    // Handle case where argument is missing (though unlikely in flow)
     if (user == null) return const Scaffold(body: Center(child: Text("Error loading profile")));
 
     if (isCheckingLikeStatus) {
       _checkIfAlreadyLiked(user.id);
     }
+    
     final dbService = DatabaseService();
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -51,35 +46,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: Semantics(
-          label: "Back",
-          button: true,
-          child: IconButton(
-            tooltip: "Back",
-            icon: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: colorScheme.primary,
-              size: 20,
-            ),
-            onPressed: () => Navigator.pop(context),
+        leading: IconButton(
+          // IconButton already handles the 48x48 tap target internally
+          tooltip: "Back",
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: colorScheme.primary,
+            size: 20,
           ),
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Text("View Profile"),
       ),
       extendBodyBehindAppBar: true,
       body: SingleChildScrollView(
+        // physics: ClampingScrollPhysics allows text scaling to push content down properly
         physics: const ClampingScrollPhysics(),
         child: Column(
           children: [
             _buildProfileHeader(user),
-
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
                   const SizedBox(height: 55),
                   
-                  // Name Header
                   Semantics(
                     header: true,
                     child: Text(
@@ -95,7 +86,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 4),
                   
-                  // Username
                   Text(
                     '@${user.username}',
                     style: const TextStyle(
@@ -106,7 +96,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   const SizedBox(height: 24),
 
-                  // Public Bio Card
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(24),
@@ -124,9 +113,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Column(
                       children: [
                         Text(
-                          user.userBio.isNotEmpty
-                              ? user.userBio
-                              : "No bio provided.",
+                          user.userBio.isNotEmpty ? user.userBio : "No bio provided.",
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             color: Color(0xFF1D1D1F),
@@ -136,13 +123,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 20),
-                          child: Divider(
-                            color: Color(0xFFF5F5F7),
-                            thickness: 1.5,
-                          ),
+                          child: Divider(color: Color(0xFFF5F5F7), thickness: 1.5),
                         ),
                         
-                        // 🟢 Interactive Like Area with Accessibility
                         _buildLikeSection(user),
                       ],
                     ),
@@ -150,15 +133,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   const SizedBox(height: 32),
 
-                  // 🛠 Public Skills Section
                   FutureBuilder<List<UserSkillModel>>(
                     future: dbService.getUserSkills(user.id),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Semantics(
-                          label: "Loading skills",
-                          child: const Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                        return Center(
+                          child: Semantics(
+                            label: "Loading skills",
+                            child: const CircularProgressIndicator(strokeWidth: 2),
                           ),
                         );
                       }
@@ -193,31 +175,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final bool isLiked = hasLikedLocally || hasLikedFromDb;
     final int count = user.likesCount + localLikesOffset;
 
-    // Merge Semantics so the button and the count are read together
-    // e.g. "Like user, currently 5 likes, button"
-    return MergeSemantics(
-      child: Semantics(
-        label: "Like user. Currently $count likes.",
-        button: true,
-        enabled: !isLiked && !isCheckingLikeStatus,
-        stateDescription: isLiked ? "Liked" : "Not liked",
+    // FIX: Removed stateDescription and merged state into the label
+    return Semantics(
+      label: "Likes section. Total likes: $count. ${isLiked ? 'You have liked this user' : 'Double tap to like'}",
+      button: true,
+      enabled: !isLiked,
+      child: MergeSemantics(
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Exclude text from individual reading since it's in the parent label
-            ExcludeSemantics(
-              child: Text(
-                '$count LIKES',
-                style: const TextStyle(
-                  color: Color(0xFF1D1D1F),
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  letterSpacing: 1.1,
-                ),
+            Text(
+              '$count LIKES',
+              style: const TextStyle(
+                color: Color(0xFF1D1D1F),
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                letterSpacing: 1.1,
               ),
             ),
             const SizedBox(width: 12),
-
             if (isCheckingLikeStatus)
               const SizedBox(
                 width: 20,
@@ -226,10 +202,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               )
             else
               IconButton(
-                // Ensure target size
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                tooltip: isLiked ? "Liked" : "Like User",
                 icon: Icon(
                   isLiked ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
                   color: isLiked ? Colors.redAccent : const Color(0xFF1D1D1F),
@@ -238,12 +212,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ? null
                     : () async {
                         if (myId == user.id) return;
-
                         setState(() {
                           localLikesOffset = 1;
                           hasLikedLocally = true;
                         });
-
                         await DatabaseService().likeUser(user.id, myId);
                       },
               ),
@@ -257,7 +229,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // Decorative Banner - Exclude from Semantics
         ExcludeSemantics(
           child: Container(
             height: 240,
@@ -284,16 +255,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 color: Color(0xFFF5F5F7),
                 shape: BoxShape.circle,
               ),
-              child: CircleAvatar(
-                radius: 50,
-                backgroundColor: Colors.white,
-                backgroundImage: user.profilePictureUrl.isNotEmpty
-                    ? NetworkImage(user.profilePictureUrl)
-                    : null,
-                // Accessible label for profile picture
-                child: Semantics(
-                  label: "Profile picture of ${user.username}",
-                  image: true,
+              child: Semantics(
+                label: "Profile picture of ${user.username}",
+                image: true,
+                child: CircleAvatar(
+                  radius: 50,
+                  backgroundColor: Colors.white,
+                  backgroundImage: user.profilePictureUrl.isNotEmpty
+                      ? NetworkImage(user.profilePictureUrl)
+                      : null,
                   child: user.profilePictureUrl.isEmpty
                       ? const Icon(
                           Icons.person_rounded,
@@ -314,7 +284,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Semantic Header
         Semantics(
           header: true,
           child: Text(
@@ -350,27 +319,28 @@ class _SkillTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Skills are usually read as text, simple Container is fine
-    // Semantics will read the child text automatically.
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+    return Semantics(
+      label: "Skill: $label",
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFF1D1D1F),
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
           ),
-        ],
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Color(0xFF1D1D1F),
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
         ),
       ),
     );
