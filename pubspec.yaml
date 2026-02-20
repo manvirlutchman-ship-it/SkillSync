@@ -18,6 +18,7 @@ dependencies:
   firebase_auth: ^5.4.1
   provider: ^6.1.2
   google_sign_in: 6.2.1 #added for google 
+  intl: ^0.20.2
   
 dev_dependencies:
   flutter_test:

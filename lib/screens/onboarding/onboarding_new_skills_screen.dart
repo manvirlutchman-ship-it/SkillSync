@@ -152,7 +152,8 @@ class _OnboardingNewSkillsScreenState extends State<OnboardingNewSkillsScreen> {
 
         if (mounted) {
           // Navigate to Home and clear stack
-          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+          Navigator.pushNamed(context, '/edit_profile');
+          // Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
         }
       }
     } catch (e) {

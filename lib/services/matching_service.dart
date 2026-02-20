@@ -122,12 +122,18 @@ class MatchingService {
 
   // --- 4. FINALIZE MATCH (HANDSHAKE) ---
   Future<void> acceptExistingMatch(String matchId) async {
-    // 1. Mark as matched
+    // 1. Get the match details to find the two users
+    final matchDoc = await _db.collection('Match').doc(matchId).get();
+    final u1 = (matchDoc.data() as Map<String, dynamic>)['user_1_id'] as DocumentReference;
+    final u2 = (matchDoc.data() as Map<String, dynamic>)['user_2_id'] as DocumentReference;
+
+    // 2. Mark as matched
     await _db.collection('Match').doc(matchId).update({'status': 'matched'});
 
-    // 2. Create the conversation record
+    // 3. 🟢 THE FIX: Add participant_ids array so we can filter chats
     await _db.collection('Conversation').add({
       'match_id': _db.doc('Match/$matchId'),
+      'participant_ids': [u1.id, u2.id], // 🟢 Store both IDs in this array
       'created_at': FieldValue.serverTimestamp(),
     });
   }

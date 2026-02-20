@@ -82,20 +82,17 @@ class NotificationsScreen extends StatelessWidget {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: _NotificationCard(
                           notification: notify,
-                          onTap: () async {
-                            // 🟢 FIX 2: Mark as read immediately so it "disappears" from the stream
-                            await DatabaseService().markNotificationAsRead(
-                              notify.id,
-                            );
+                          onTap: () {
+                            // 1️⃣ Mark as read in background
+                            DatabaseService().markNotificationAsRead(notify.id);
 
                             if (notify.type == 'match') {
-                              if (context.mounted) {
-                                Navigator.pushNamed(
-                                  context,
-                                  '/matching',
-                                  arguments: notify.referenceId,
-                                );
-                              }
+                              // 2️⃣ Navigate to matching with match ID
+                              Navigator.pushNamed(
+                                context,
+                                '/matching',
+                                arguments: notify.referenceId,
+                              );
                             }
                           },
                         ),

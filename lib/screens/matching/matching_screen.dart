@@ -54,32 +54,39 @@ class _MatchingScreenState extends State<MatchingScreen> {
 
   // 🟢 New method to load the person who requested YOU
   Future<void> _loadSpecificMatch(String matchId) async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
+    
     try {
-      // 1. Get the Match document to see who the sender (user_1) is
-      final matchDoc = await FirebaseFirestore.instance
-          .collection('Match')
-          .doc(matchId)
-          .get();
-      final requesterRef = matchDoc.data()?['user_1_id'] as DocumentReference;
+      debugPrint("!!! Loading Match Document: $matchId !!!");
+      final matchDoc = await FirebaseFirestore.instance.collection('Match').doc(matchId).get();
+      
+      if (!matchDoc.exists) {
+        debugPrint("!!! Match document does not exist !!!");
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
 
-      // 2. Get that user's profile
+      // Identify the other user (User 1 is usually the requester)
+      final data = matchDoc.data() as Map<String, dynamic>;
+      final requesterRef = data['user_1_id'] as DocumentReference;
+
       final requesterProfile = await _dbService.getUserProfile(requesterRef.id);
 
-      if (requesterProfile != null) {
+      if (requesterProfile != null && mounted) {
         setState(() {
-          _matches = [requesterProfile]; // Put them in the list
+          _matches = [requesterProfile];
           _currentIndex = 0;
           _isLoading = false;
         });
+        // Now load the skill names for this specific user
         await _loadSkillsForCurrentMatch();
       }
     } catch (e) {
-      debugPrint("Error loading specific match: $e");
-      setState(() => _isLoading = false);
+      debugPrint("!!! Error in _loadSpecificMatch: $e !!!");
+      if (mounted) setState(() => _isLoading = false);
     }
   }
-
   // 1. Fetch matches and filter out "Empty" users
   Future<void> _loadMatches() async {
     if (!mounted) return;

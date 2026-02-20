@@ -47,6 +47,26 @@ class UserModel {
     );
   }
 
+  
+  UserModel copyWith({
+    String? firstName,
+    String? lastName,
+    String? userBio,
+    bool? isOnboarded,
+  }) {
+    return UserModel(
+      id: id,
+      username: username,
+      dateOfBirth: dateOfBirth,
+      profilePictureUrl: profilePictureUrl,
+      profileBannerUrl: profileBannerUrl,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      userBio: userBio ?? this.userBio,
+      isOnboarded: isOnboarded ?? this.isOnboarded,
+    );
+  }
+
   /// Method to convert the model back to a Map for saving to Firestore
   Map<String, dynamic> toMap() {
     return {

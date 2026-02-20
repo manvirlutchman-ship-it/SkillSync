@@ -106,6 +106,7 @@ class DatabaseService {
     return _db.collection('Post').add(post.toMap());
   }
 
+  // lib/services/database_service.dart
   Stream<List<MessageModel>> getMessages(String conversationId) {
     return _db
         .collection('Message')
@@ -113,7 +114,7 @@ class DatabaseService {
           'conversation_id',
           isEqualTo: _db.doc('Conversation/$conversationId'),
         )
-        .orderBy('sent_at', descending: false)
+        .orderBy('sent_at', descending: true) // 🟢 MUST BE DESCENDING
         .snapshots()
         .map(
           (snap) =>
@@ -121,7 +122,6 @@ class DatabaseService {
         );
   }
 
-  
   // 🟢 UPDATED: Accepts UID and a Map (Partial Update)
   // This matches your EditProfileScreen logic.
   Future<void> updateUser(String uid, Map<String, dynamic> data) async {
@@ -174,7 +174,11 @@ class DatabaseService {
   }
 
   // 🟢 ADD THIS METHOD
-   Future<void> sendMessage(String conversationId, String senderId, String text) async {
+  Future<void> sendMessage(
+    String conversationId,
+    String senderId,
+    String text,
+  ) async {
     try {
       await _db.collection('Message').add({
         'conversation_id': _db.doc('Conversation/$conversationId'),
@@ -192,9 +196,9 @@ class DatabaseService {
 
   // 🟢 ALSO ADD THIS: Needed to list your chats on the Home Screen
   Stream<List<ConversationModel>> getMyConversations(String userId) {
-    // This finds conversations where the match involves the user
-    // Note: This requires a Match record to exist first!
     return _db.collection('Conversation')
+        // 🟢 ONLY chats where the current user ID is in the participants list
+        .where('participant_ids', arrayContains: userId) 
         .orderBy('created_at', descending: true)
         .snapshots()
         .map((snap) => snap.docs.map((doc) => ConversationModel.fromFirestore(doc)).toList());
@@ -210,5 +214,45 @@ class DatabaseService {
       print("Error marking notification as read: $e");
     }
   }
+
+  // 🟢 ADD THIS: Resolve the chat partner's profile
+  Future<UserModel?> getChatPartner(
+    String conversationId,
+    String currentUserId,
+  ) async {
+    try {
+      // 1. Get the conversation document
+      final convDoc = await _db
+          .collection('Conversation')
+          .doc(conversationId)
+          .get();
+
+      // 🟢 FIX: Explicitly cast doc.data() to a Map
+      final convData = convDoc.data() as Map<String, dynamic>?;
+      if (convData == null) return null;
+
+      final matchRef = convData['match_id'] as DocumentReference;
+
+      // 2. Get the match document
+      final matchDoc = await matchRef.get();
+
+      // 🟢 FIX: Explicitly cast matchDoc.data() to a Map
+      final matchData = matchDoc.data() as Map<String, dynamic>?;
+      if (matchData == null) return null;
+
+      final u1Ref = matchData['user_1_id'] as DocumentReference;
+      final u2Ref = matchData['user_2_id'] as DocumentReference;
+
+      // 3. Identify who is NOT the current user
+      final String partnerId = u1Ref.id == currentUserId ? u2Ref.id : u1Ref.id;
+
+      // 4. Return that user's profile
+      return getUserProfile(partnerId);
+    } catch (e) {
+      print("Error finding chat partner: $e");
+      return null;
+    }
+  }
+
   // Add more methods as needed using the same .toMap() pattern
 }

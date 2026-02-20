@@ -17,7 +17,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _lastNameController;
   late TextEditingController _bioController;
   bool _isSaving = false;
-  bool _isLoadingSkills = false; 
+  bool _isLoadingSkills = false;
 
   @override
   void initState() {
@@ -36,42 +36,49 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
-  Future<void> _saveProfile() async {
+  // 🟢 LOGIC: Save Profile (Handles both Onboarding and Settings)
+  // 🟢 LOGIC: Save Profile
+  Future<void> _saveProfile(bool isFirstTime) async {
     if (!_formKey.currentState!.validate()) return;
+    
     setState(() => _isSaving = true);
     final userProvider = context.read<UserProvider>();
-    final uid = userProvider.user?.id;
+    final user = userProvider.user;
 
-    if (uid != null) {
+    if (user != null) {
       try {
-        await DatabaseService().updateUser(uid, {
+        // 1. Update Firestore
+        await DatabaseService().updateUser(user.id, {
           'first_name': _firstNameController.text.trim(),
           'last_name': _lastNameController.text.trim(),
           'user_bio': _bioController.text.trim(),
+          'is_onboarded': true,
         });
-        await userProvider.fetchUser(uid);
+
+        // 2. Update Provider locally
+        userProvider.updateLocalUser(user.copyWith(
+          firstName: _firstNameController.text.trim(),
+          lastName: _lastNameController.text.trim(),
+          userBio: _bioController.text.trim(),
+          isOnboarded: true,
+        ));
+
         if (mounted) {
-          Navigator.pop(context); 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Profile updated successfully")),
-          );
+          // 🟢 THE NUCLEAR NAVIGATION:
+          // This goes to Home and DELETES the onboarding screens from memory.
+          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
         }
       } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Error updating profile: $e")),
-          );
-        }
+        if (mounted) setState(() => _isSaving = false);
       }
     }
-    if (mounted) setState(() => _isSaving = false);
   }
 
-  // 🟢 1. CONFIRMATION DIALOG
   void _confirmSkillReset() {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text("Update Skills?"),
         content: const Text(
           "This will reset your current skills and allow you to select them again from scratch.\n\nDo you want to continue?",
@@ -84,37 +91,34 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(ctx); // Close dialog
-              _resetAndNavigateSkills(); // Proceed
+              Navigator.pop(ctx);
+              _resetAndNavigateSkills();
             },
-            child: const Text("Yes, Update", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            child: const Text(
+              "Yes, Update",
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  // 🟢 2. LOGIC: WIPE ALL SKILLS -> GO TO START OF FLOW
   Future<void> _resetAndNavigateSkills() async {
     final uid = context.read<UserProvider>().user?.id;
     if (uid == null) return;
-
     setState(() => _isLoadingSkills = true);
-
     try {
-      // Clear ALL skills (no type specified)
       await DatabaseService().clearUserSkills(uid);
-
-      if (!mounted) return;
-
-      // Navigate to the start of the skill onboarding flow
-      // This is the Teaching Skills screen, which usually leads to Learning Skills next
-      Navigator.pushNamed(context, '/onboarding_current'); 
-
+      if (mounted) Navigator.pushNamed(context, '/onboarding_current');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error resetting skills: $e")),
-      );
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
     } finally {
       if (mounted) setState(() => _isLoadingSkills = false);
     }
@@ -122,120 +126,187 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final user = context.watch<UserProvider>().user;
+
+    // 🟢 MODE DETECTION: Are we in onboarding?
+    final bool isFirstTime = user?.isOnboarded == false;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F7), 
+      backgroundColor: const Color(0xFFF5F5F7),
       appBar: AppBar(
-        title: const Text("Edit Profile"),
+        title: Text(isFirstTime ? "Final Step" : "Edit Profile"),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close_rounded, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
+        // Hide back button during onboarding so user doesn't skip
+        leading: isFirstTime
+            ? const SizedBox.shrink()
+            : IconButton(
+                icon: const Icon(Icons.close_rounded, color: Colors.black),
+                onPressed: () => Navigator.pop(context),
+              ),
       ),
       body: SafeArea(
-        child: _isLoadingSkills 
-        ? const Center(child: CircularProgressIndicator(color: Colors.black)) 
-        : SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildSectionHeader("PERSONAL INFORMATION"),
-                const SizedBox(height: 12),
-                
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      )
-                    ],
-                  ),
+        child: _isLoadingSkills
+            ? const Center(
+                child: CircularProgressIndicator(color: Colors.black),
+              )
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Form(
+                  key: _formKey,
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      TextFormField(
-                        controller: _firstNameController,
-                        decoration: const InputDecoration(labelText: 'First Name'),
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _lastNameController,
-                        decoration: const InputDecoration(labelText: 'Last Name'),
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _bioController,
-                        maxLines: 3,
-                        decoration: const InputDecoration(
-                          labelText: 'Bio',
-                          alignLabelWithHint: true,
+                      if (isFirstTime) ...[
+                        _buildStepIndicator(colorScheme),
+                        const SizedBox(height: 24),
+                      ],
+
+                      _buildSectionHeader("PERSONAL INFORMATION"),
+                      const SizedBox(height: 12),
+
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.03),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            TextFormField(
+                              controller: _firstNameController,
+                              style: const TextStyle(color: Colors.black),
+                              decoration: const InputDecoration(
+                                labelText: 'First Name',
+                              ),
+                              validator: (v) =>
+                                  v!.isEmpty ? "Enter your first name" : null,
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _lastNameController,
+                              style: const TextStyle(color: Colors.black),
+                              decoration: const InputDecoration(
+                                labelText: 'Last Name',
+                              ),
+                              validator: (v) =>
+                                  v!.isEmpty ? "Enter your last name" : null,
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _bioController,
+                              style: const TextStyle(color: Colors.black),
+                              maxLines: 3,
+                              decoration: const InputDecoration(
+                                labelText: 'Bio',
+                                alignLabelWithHint: true,
+                              ),
+                              validator: (v) => v!.length < 10
+                                  ? "Write at least a sentence about yourself"
+                                  : null,
+                            ),
+                          ],
                         ),
                       ),
+
+                      // 🟢 Only show "Update Skills" if NOT in onboarding mode
+                      if (!isFirstTime) ...[
+                        const SizedBox(height: 32),
+                        _buildSectionHeader("SKILLS"),
+                        const SizedBox(height: 12),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.03),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: ListTile(
+                            onTap: _confirmSkillReset,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 8,
+                            ),
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.layers_rounded,
+                                color: Colors.black,
+                                size: 22,
+                              ),
+                            ),
+                            title: const Text(
+                              "Update Skills",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                                color: Colors.black,
+                              ),
+                            ),
+                            trailing: const Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 16,
+                              color: Color(0xFFC7C7CC),
+                            ),
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 40),
+
+                      _isSaving
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.black,
+                              ),
+                            )
+                          : PrimaryButton(
+                              label: isFirstTime
+                                  ? "FINISH SETUP"
+                                  : "SAVE CHANGES",
+                              onPressed: () => _saveProfile(isFirstTime),
+                            ),
                     ],
                   ),
                 ),
-                
-                const SizedBox(height: 32),
+              ),
+      ),
+    );
+  }
 
-                _buildSectionHeader("SKILLS"),
-                const SizedBox(height: 12),
-
-                // 🟢 SINGLE BUTTON: Update Skills
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      )
-                    ],
-                  ),
-                  child: ListTile(
-                    onTap: _confirmSkillReset,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.05), // Light grey bg
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.layers_rounded, color: Colors.black, size: 22),
-                    ),
-                    title: const Text(
-                      "Update Skills",
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                        color: Colors.black,
-                      ),
-                    ),
-                    trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Color(0xFFC7C7CC)),
-                  ),
-                ),
-
-                const SizedBox(height: 40),
-                
-                _isSaving
-                    ? const Center(child: CircularProgressIndicator())
-                    : PrimaryButton(
-                        label: "SAVE CHANGES",
-                        onPressed: _saveProfile,
-                      ),
-              ],
-            ),
-          ),
+  Widget _buildStepIndicator(ColorScheme colorScheme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8E8ED),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Text(
+        'STEP 3 OF 3',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: colorScheme.secondary,
+          letterSpacing: 1.1,
         ),
       ),
     );

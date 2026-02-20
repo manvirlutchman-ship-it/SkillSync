@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 // MODELS & SERVICES
 import 'package:skillsync/models/conversation_model.dart'; // 🟢 FIX 1: Import added
+import 'package:skillsync/models/user_model.dart';
 import 'package:skillsync/services/database_service.dart'; // 🟢 FIX 2: Import added
 import 'package:skillsync/providers/user_provider.dart';
 
@@ -21,17 +22,27 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   // 🟢 FIX 3: Define the DatabaseService instance here
   final DatabaseService _dbService = DatabaseService();
-
+  
   @override
   void initState() {
     super.initState();
-    // Fetch user profile on arrival
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+
+    // 🔹 Run after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final authUser = FirebaseAuth.instance.currentUser;
       if (authUser != null) {
         final provider = context.read<UserProvider>();
-        if (provider.user == null) {
-          provider.fetchUser(authUser.uid);
+
+        // 1️⃣ Fetch user data
+        await provider.fetchUser(authUser.uid);
+
+        // 2️⃣ REDIRECT: If user needs onboarding, navigate to onboarding screen
+        if (provider.needsOnboarding && mounted) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/onboarding_current',
+            (route) => false,
+          );
         }
       }
     });
@@ -71,6 +82,9 @@ class _HomeScreenState extends State<HomeScreen> {
         onPressed: () => Navigator.pushNamed(context, '/matching'),
       ),
 
+
+
+    
       // 💬 REAL-TIME Chat list from Firestore
       body: currentUser == null 
         ? const Center(child: CircularProgressIndicator())
@@ -109,71 +123,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 itemCount: conversations.length,
                 itemBuilder: (context, index) {
                   final conv = conversations[index];
-
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ChatScreen(
-                              chatName: "Skill Partner", // Later we can fetch the specific name
-                              conversationId: conv.id,
-                            ),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
-                              blurRadius: 15,
-                              offset: const Offset(0, 8),
-                            )
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 28,
-                              backgroundColor: theme.scaffoldBackgroundColor,
-                              child: Icon(Icons.person_rounded, color: colorScheme.primary),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Skill Match",
-                                    style: TextStyle(
-                                      color: colorScheme.primary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 17,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    "Tap to start chatting",
-                                    style: TextStyle(
-                                      color: colorScheme.secondary,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Icon(Icons.arrow_forward_ios_rounded, size: 14, color: colorScheme.secondary.withOpacity(0.5)),
-                          ],
-                        ),
-                      ),
-                    ),
+                  // Use a specialized widget to handle fetching the partner's name
+                  return _ChatTile(
+                    conversation: conv,
+                    currentUserId: currentUser.uid,
                   );
                 },
               );
@@ -191,3 +144,115 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
+
+class _ChatTile extends StatelessWidget {
+  final ConversationModel conversation;
+  final String currentUserId;
+
+  const _ChatTile({required this.conversation, required this.currentUserId});
+
+  @override
+  Widget build(BuildContext context) {
+    final dbService = DatabaseService();
+    final theme = Theme.of(context);
+
+    return FutureBuilder<UserModel?>(
+      future: dbService.getChatPartner(conversation.id, currentUserId),
+      builder: (context, snapshot) {
+        // While fetching the partner's info, show a skeleton loader
+        if (!snapshot.hasData) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Container(
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          );
+        }
+
+        final partner = snapshot.data!;
+        final String displayName = partner.fullName.trim().isEmpty 
+            ? partner.username 
+            : partner.fullName;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ChatScreen(
+                    chatName: displayName,
+                    conversationId: conversation.id,
+                  ),
+                ),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 15,
+                    offset: const Offset(0, 8),
+                  )
+                ],
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: const Color(0xFFF5F5F7),
+                    backgroundImage: partner.profilePictureUrl.isNotEmpty 
+                        ? NetworkImage(partner.profilePictureUrl) 
+                        : null,
+                    child: partner.profilePictureUrl.isEmpty 
+                        ? Icon(Icons.person_rounded, color: theme.colorScheme.primary) 
+                        : null,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          displayName, // 🟢 FIXED: Now shows real name
+                          style: TextStyle(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 17,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Tap to start chatting",
+                          style: TextStyle(
+                            color: theme.colorScheme.secondary,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.arrow_forward_ios_rounded, 
+                      size: 14, 
+                      color: theme.colorScheme.secondary.withOpacity(0.5)),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
