@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:skillsync/models/user_model.dart';
 import 'package:skillsync/models/userskill_model.dart';
 import 'package:skillsync/services/database_service.dart';
-//import 'package:skillsync/widgets/rating_row.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -34,8 +33,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     // 🟢 EXTRACT THE USER DATA passed from MatchingScreen
-    final UserModel user =
-        ModalRoute.of(context)!.settings.arguments as UserModel;
+    final UserModel? user =
+        ModalRoute.of(context)?.settings.arguments as UserModel?;
+
+    // Handle case where argument is missing (though unlikely in flow)
+    if (user == null) return const Scaffold(body: Center(child: Text("Error loading profile")));
+
     if (isCheckingLikeStatus) {
       _checkIfAlreadyLiked(user.id);
     }
@@ -48,18 +51,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: colorScheme.primary,
-            size: 20,
+        leading: Semantics(
+          label: "Back",
+          button: true,
+          child: IconButton(
+            tooltip: "Back",
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: colorScheme.primary,
+              size: 20,
+            ),
+            onPressed: () => Navigator.pop(context),
           ),
-          onPressed: () => Navigator.pop(context),
         ),
         title: const Text("View Profile"),
       ),
       extendBodyBehindAppBar: true,
       body: SingleChildScrollView(
+        physics: const ClampingScrollPhysics(),
         child: Column(
           children: [
             _buildProfileHeader(user),
@@ -69,16 +78,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 55),
-                  Text(
-                    user.fullName.isEmpty ? user.username : user.fullName,
-                    style: const TextStyle(
-                      color: Color(0xFF1D1D1F),
-                      fontSize: 30,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.8,
+                  
+                  // Name Header
+                  Semantics(
+                    header: true,
+                    child: Text(
+                      user.fullName.isEmpty ? user.username : user.fullName,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color(0xFF1D1D1F),
+                        fontSize: 30,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.8,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 4),
+                  
+                  // Username
                   Text(
                     '@${user.username}',
                     style: const TextStyle(
@@ -124,57 +141,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             thickness: 1.5,
                           ),
                         ),
-                        // 🟢 Interactive Like Area
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              '${user.likesCount + localLikesOffset} LIKES',
-                              style: const TextStyle(
-                                color: Color(0xFF1D1D1F),
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                                letterSpacing: 1.1,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-
-                            isCheckingLikeStatus
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : IconButton(
-                                    icon: Icon(
-                                      (hasLikedLocally || hasLikedFromDb)
-                                          ? Icons.favorite_rounded
-                                          : Icons.favorite_outline_rounded,
-                                      color: (hasLikedLocally || hasLikedFromDb)
-                                          ? Colors.redAccent
-                                          : const Color(0xFF1D1D1F),
-                                    ),
-                                    onPressed:
-                                        (hasLikedLocally || hasLikedFromDb)
-                                        ? null
-                                        : () async {
-                                            if (myId == user.id) return;
-
-                                            setState(() {
-                                              localLikesOffset = 1;
-                                              hasLikedLocally = true;
-                                            });
-
-                                            await DatabaseService().likeUser(
-                                              user.id,
-                                              myId,
-                                            );
-                                          },
-                                  ),
-                          ],
-                        ),
+                        
+                        // 🟢 Interactive Like Area with Accessibility
+                        _buildLikeSection(user),
                       ],
                     ),
                   ),
@@ -186,8 +155,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     future: dbService.getUserSkills(user.id),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                        return Semantics(
+                          label: "Loading skills",
+                          child: const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
                         );
                       }
                       final allSkills = snapshot.data ?? [];
@@ -217,21 +189,88 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildLikeSection(UserModel user) {
+    final bool isLiked = hasLikedLocally || hasLikedFromDb;
+    final int count = user.likesCount + localLikesOffset;
+
+    // Merge Semantics so the button and the count are read together
+    // e.g. "Like user, currently 5 likes, button"
+    return MergeSemantics(
+      child: Semantics(
+        label: "Like user. Currently $count likes.",
+        button: true,
+        enabled: !isLiked && !isCheckingLikeStatus,
+        stateDescription: isLiked ? "Liked" : "Not liked",
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Exclude text from individual reading since it's in the parent label
+            ExcludeSemantics(
+              child: Text(
+                '$count LIKES',
+                style: const TextStyle(
+                  color: Color(0xFF1D1D1F),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  letterSpacing: 1.1,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            if (isCheckingLikeStatus)
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              IconButton(
+                // Ensure target size
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                tooltip: isLiked ? "Liked" : "Like User",
+                icon: Icon(
+                  isLiked ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
+                  color: isLiked ? Colors.redAccent : const Color(0xFF1D1D1F),
+                ),
+                onPressed: isLiked
+                    ? null
+                    : () async {
+                        if (myId == user.id) return;
+
+                        setState(() {
+                          localLikesOffset = 1;
+                          hasLikedLocally = true;
+                        });
+
+                        await DatabaseService().likeUser(user.id, myId);
+                      },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildProfileHeader(UserModel user) {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        Container(
-          height: 240,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: const Color(0xFFE8E8ED),
-            image: user.profileBannerUrl.isNotEmpty
-                ? DecorationImage(
-                    image: NetworkImage(user.profileBannerUrl),
-                    fit: BoxFit.cover,
-                  )
-                : null,
+        // Decorative Banner - Exclude from Semantics
+        ExcludeSemantics(
+          child: Container(
+            height: 240,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8E8ED),
+              image: user.profileBannerUrl.isNotEmpty
+                  ? DecorationImage(
+                      image: NetworkImage(user.profileBannerUrl),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
+            ),
           ),
         ),
         Positioned(
@@ -251,13 +290,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 backgroundImage: user.profilePictureUrl.isNotEmpty
                     ? NetworkImage(user.profilePictureUrl)
                     : null,
-                child: user.profilePictureUrl.isEmpty
-                    ? const Icon(
-                        Icons.person_rounded,
-                        color: Color(0xFF86868B),
-                        size: 45,
-                      )
-                    : null,
+                // Accessible label for profile picture
+                child: Semantics(
+                  label: "Profile picture of ${user.username}",
+                  image: true,
+                  child: user.profilePictureUrl.isEmpty
+                      ? const Icon(
+                          Icons.person_rounded,
+                          color: Color(0xFF86868B),
+                          size: 45,
+                        )
+                      : null,
+                ),
               ),
             ),
           ),
@@ -270,13 +314,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            color: Color(0xFF86868B),
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1.2,
+        // Semantic Header
+        Semantics(
+          header: true,
+          child: Text(
+            title,
+            style: const TextStyle(
+              color: Color(0xFF86868B),
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.2,
+            ),
           ),
         ),
         const SizedBox(height: 12),
@@ -302,6 +350,8 @@ class _SkillTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Skills are usually read as text, simple Container is fine
+    // Semantics will read the child text automatically.
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
       decoration: BoxDecoration(

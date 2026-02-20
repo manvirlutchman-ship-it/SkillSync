@@ -36,9 +36,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
-  // 🟢 LOGIC: Save Profile (Handles both Onboarding and Settings)
-  // 🟢 LOGIC: Save Profile
   Future<void> _saveProfile(bool isFirstTime) async {
+    // Dismiss keyboard to ensure screen reader focus isn't trapped
+    FocusManager.instance.primaryFocus?.unfocus();
+
     if (!_formKey.currentState!.validate()) return;
     
     setState(() => _isSaving = true);
@@ -47,7 +48,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     if (user != null) {
       try {
-        // 1. Update Firestore
         await DatabaseService().updateUser(user.id, {
           'first_name': _firstNameController.text.trim(),
           'last_name': _lastNameController.text.trim(),
@@ -55,7 +55,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           'is_onboarded': true,
         });
 
-        // 2. Update Provider locally
         userProvider.updateLocalUser(user.copyWith(
           firstName: _firstNameController.text.trim(),
           lastName: _lastNameController.text.trim(),
@@ -64,8 +63,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ));
 
         if (mounted) {
-          // 🟢 THE NUCLEAR NAVIGATION:
-          // This goes to Home and DELETES the onboarding screens from memory.
           Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
         }
       } catch (e) {
@@ -115,10 +112,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       await DatabaseService().clearUserSkills(uid);
       if (mounted) Navigator.pushNamed(context, '/onboarding_current');
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
     } finally {
       if (mounted) setState(() => _isLoadingSkills = false);
     }
@@ -129,8 +125,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final user = context.watch<UserProvider>().user;
-
-    // 🟢 MODE DETECTION: Are we in onboarding?
     final bool isFirstTime = user?.isOnboarded == false;
 
     return Scaffold(
@@ -140,18 +134,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        // Hide back button during onboarding so user doesn't skip
         leading: isFirstTime
             ? const SizedBox.shrink()
-            : IconButton(
-                icon: const Icon(Icons.close_rounded, color: Colors.black),
-                onPressed: () => Navigator.pop(context),
+            : Semantics(
+                label: "Close",
+                button: true,
+                child: IconButton(
+                  icon: const Icon(Icons.close_rounded, color: Colors.black),
+                  onPressed: () => Navigator.pop(context),
+                ),
               ),
       ),
       body: SafeArea(
         child: _isLoadingSkills
-            ? const Center(
-                child: CircularProgressIndicator(color: Colors.black),
+            ? Semantics(
+                label: "Resetting skills",
+                child: const Center(
+                  child: CircularProgressIndicator(color: Colors.black),
+                ),
               )
             : SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
@@ -186,29 +186,40 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             TextFormField(
                               controller: _firstNameController,
                               style: const TextStyle(color: Colors.black),
+                              textInputAction: TextInputAction.next,
+                              autofillHints: const [AutofillHints.givenName],
+                              keyboardType: TextInputType.name,
                               decoration: const InputDecoration(
                                 labelText: 'First Name',
+                                hintText: 'Enter your first name',
                               ),
-                              validator: (v) =>
-                                  v!.isEmpty ? "Enter your first name" : null,
+                              validator: (v) => v!.isEmpty ? "Enter your first name" : null,
                             ),
                             const SizedBox(height: 16),
+                            
                             TextFormField(
                               controller: _lastNameController,
                               style: const TextStyle(color: Colors.black),
+                              textInputAction: TextInputAction.next,
+                              autofillHints: const [AutofillHints.familyName],
+                              keyboardType: TextInputType.name,
                               decoration: const InputDecoration(
                                 labelText: 'Last Name',
+                                hintText: 'Enter your last name',
                               ),
-                              validator: (v) =>
-                                  v!.isEmpty ? "Enter your last name" : null,
+                              validator: (v) => v!.isEmpty ? "Enter your last name" : null,
                             ),
                             const SizedBox(height: 16),
+                            
                             TextFormField(
                               controller: _bioController,
                               style: const TextStyle(color: Colors.black),
                               maxLines: 3,
+                              textInputAction: TextInputAction.done,
+                              keyboardType: TextInputType.multiline,
                               decoration: const InputDecoration(
                                 labelText: 'Bio',
+                                hintText: 'Tell us a bit about yourself',
                                 alignLabelWithHint: true,
                               ),
                               validator: (v) => v!.length < 10
@@ -219,53 +230,66 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                       ),
 
-                      // 🟢 Only show "Update Skills" if NOT in onboarding mode
                       if (!isFirstTime) ...[
                         const SizedBox(height: 32),
                         _buildSectionHeader("SKILLS"),
                         const SizedBox(height: 12),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.03),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: ListTile(
-                            onTap: _confirmSkillReset,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 8,
-                            ),
-                            leading: Container(
-                              padding: const EdgeInsets.all(8),
+                        
+                        // Merge Semantics to make the entire tile a single clickable button
+                        MergeSemantics(
+                          child: Semantics(
+                            button: true,
+                            label: "Update Skills",
+                            hint: "Resets current skills and starts selection over",
+                            child: Container(
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.05),
-                                borderRadius: BorderRadius.circular(10),
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.03),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 10),
+                                  ),
+                                ],
                               ),
-                              child: const Icon(
-                                Icons.layers_rounded,
-                                color: Colors.black,
-                                size: 22,
+                              child: ListTile(
+                                onTap: _confirmSkillReset,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 8,
+                                ),
+                                leading: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.05),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  // Exclude icon from individual reading
+                                  child: ExcludeSemantics(
+                                    child: const Icon(
+                                      Icons.layers_rounded,
+                                      color: Colors.black,
+                                      size: 22,
+                                    ),
+                                  ),
+                                ),
+                                title: const Text(
+                                  "Update Skills",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 15,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                trailing: ExcludeSemantics(
+                                  child: const Icon(
+                                    Icons.arrow_forward_ios_rounded,
+                                    size: 16,
+                                    color: Color(0xFFC7C7CC),
+                                  ),
+                                ),
                               ),
-                            ),
-                            title: const Text(
-                              "Update Skills",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
-                                color: Colors.black,
-                              ),
-                            ),
-                            trailing: const Icon(
-                              Icons.arrow_forward_ios_rounded,
-                              size: 16,
-                              color: Color(0xFFC7C7CC),
                             ),
                           ),
                         ),
@@ -274,16 +298,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       const SizedBox(height: 40),
 
                       _isSaving
-                          ? const Center(
-                              child: CircularProgressIndicator(
-                                color: Colors.black,
+                          ? Semantics(
+                              label: "Saving profile changes",
+                              child: const Center(
+                                child: CircularProgressIndicator(color: Colors.black),
                               ),
                             )
                           : PrimaryButton(
-                              label: isFirstTime
-                                  ? "FINISH SETUP"
-                                  : "SAVE CHANGES",
+                              label: isFirstTime ? "FINISH SETUP" : "SAVE CHANGES",
                               onPressed: () => _saveProfile(isFirstTime),
+                              height: 48, // Ensure minimum touch target
                             ),
                     ],
                   ),
@@ -294,19 +318,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Widget _buildStepIndicator(ColorScheme colorScheme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE8E8ED),
-        borderRadius: BorderRadius.circular(30),
-      ),
-      child: Text(
-        'STEP 3 OF 3',
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-          color: colorScheme.secondary,
-          letterSpacing: 1.1,
+    return Semantics(
+      label: "Step 3 of 3",
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE8E8ED),
+          borderRadius: BorderRadius.circular(30),
+        ),
+        child: Text(
+          'STEP 3 OF 3',
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            color: colorScheme.secondary,
+            letterSpacing: 1.1,
+          ),
         ),
       ),
     );
@@ -315,13 +343,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(left: 12),
-      child: Text(
-        title,
-        style: const TextStyle(
-          color: Color(0xFF86868B),
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.0,
+      // Mark as Header for easier navigation
+      child: Semantics(
+        header: true,
+        child: Text(
+          title,
+          style: const TextStyle(
+            color: Color(0xFF86868B),
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.0,
+          ),
         ),
       ),
     );

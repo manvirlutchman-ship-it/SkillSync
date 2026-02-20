@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 // MODELS & SERVICES
-import 'package:skillsync/models/conversation_model.dart'; // 🟢 FIX 1: Import added
+import 'package:skillsync/models/conversation_model.dart';
 import 'package:skillsync/models/user_model.dart';
-import 'package:skillsync/services/database_service.dart'; // 🟢 FIX 2: Import added
+import 'package:skillsync/services/database_service.dart';
 import 'package:skillsync/providers/user_provider.dart';
 
 // SCREENS & WIDGETS
@@ -20,23 +20,18 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // 🟢 FIX 3: Define the DatabaseService instance here
   final DatabaseService _dbService = DatabaseService();
   
   @override
   void initState() {
     super.initState();
 
-    // 🔹 Run after the first frame
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final authUser = FirebaseAuth.instance.currentUser;
       if (authUser != null) {
         final provider = context.read<UserProvider>();
-
-        // 1️⃣ Fetch user data
         await provider.fetchUser(authUser.uid);
 
-        // 2️⃣ REDIRECT: If user needs onboarding, navigate to onboarding screen
         if (provider.needsOnboarding && mounted) {
           Navigator.pushNamedAndRemoveUntil(
             context,
@@ -63,13 +58,17 @@ class _HomeScreenState extends State<HomeScreen> {
         centerTitle: false,
         title: Padding(
           padding: const EdgeInsets.only(left: 8.0),
-          child: Text(
-            'Messages',
-            style: TextStyle(
-              color: colorScheme.primary,
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              letterSpacing: -0.8,
+          // Semantic Header for navigation
+          child: Semantics(
+            header: true,
+            child: Text(
+              'Messages',
+              style: TextStyle(
+                color: colorScheme.primary,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                letterSpacing: -0.8,
+              ),
             ),
           ),
         ),
@@ -78,21 +77,25 @@ class _HomeScreenState extends State<HomeScreen> {
       floatingActionButton: FloatingActionButton(
         elevation: 4,
         backgroundColor: colorScheme.primary,
+        tooltip: "Start a new match", // Accessibility label for long-press/hover
         child: const Icon(Icons.add_rounded, color: Colors.white, size: 30),
         onPressed: () => Navigator.pushNamed(context, '/matching'),
       ),
 
-
-
-    
       // 💬 REAL-TIME Chat list from Firestore
       body: currentUser == null 
-        ? const Center(child: CircularProgressIndicator())
+        ? Semantics(
+            label: "Loading user data",
+            child: const Center(child: CircularProgressIndicator())
+          )
         : StreamBuilder<List<ConversationModel>>(
             stream: _dbService.getMyConversations(currentUser.uid),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return Semantics(
+                  label: "Loading conversations",
+                  child: const Center(child: CircularProgressIndicator())
+                );
               }
 
               if (snapshot.hasError) {
@@ -106,7 +109,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.chat_bubble_outline_rounded, size: 60, color: colorScheme.secondary.withOpacity(0.3)),
+                      // Exclude decorative icon
+                      ExcludeSemantics(
+                        child: Icon(Icons.chat_bubble_outline_rounded, size: 60, color: colorScheme.secondary.withOpacity(0.3)),
+                      ),
                       const SizedBox(height: 16),
                       Text(
                         "No conversations yet.\nGo match with someone!",
@@ -123,7 +129,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 itemCount: conversations.length,
                 itemBuilder: (context, index) {
                   final conv = conversations[index];
-                  // Use a specialized widget to handle fetching the partner's name
                   return _ChatTile(
                     conversation: conv,
                     currentUserId: currentUser.uid,
@@ -145,7 +150,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-
 class _ChatTile extends StatelessWidget {
   final ConversationModel conversation;
   final String currentUserId;
@@ -160,15 +164,18 @@ class _ChatTile extends StatelessWidget {
     return FutureBuilder<UserModel?>(
       future: dbService.getChatPartner(conversation.id, currentUserId),
       builder: (context, snapshot) {
-        // While fetching the partner's info, show a skeleton loader
+        // Skeleton loader semantics
         if (!snapshot.hasData) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Container(
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(16),
+          return Semantics(
+            label: "Loading chat details",
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Container(
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
             ),
           );
@@ -181,72 +188,86 @@ class _ChatTile extends StatelessWidget {
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ChatScreen(
-                    chatName: displayName,
-                    conversationId: conversation.id,
+          // Merge Semantics to make the whole card read as one meaningful button
+          child: MergeSemantics(
+            child: Semantics(
+              button: true,
+              label: "Chat with $displayName",
+              hint: "Double tap to open conversation",
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ChatScreen(
+                        chatName: displayName,
+                        conversationId: conversation.id,
+                      ),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 15,
+                        offset: const Offset(0, 8),
+                      )
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      // Exclude semantics here because the name is read in the label
+                      ExcludeSemantics(
+                        child: CircleAvatar(
+                          radius: 28,
+                          backgroundColor: const Color(0xFFF5F5F7),
+                          backgroundImage: partner.profilePictureUrl.isNotEmpty 
+                              ? NetworkImage(partner.profilePictureUrl) 
+                              : null,
+                          child: partner.profilePictureUrl.isEmpty 
+                              ? Icon(Icons.person_rounded, color: theme.colorScheme.primary) 
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              displayName,
+                              style: TextStyle(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 17,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "Tap to start chatting",
+                              style: TextStyle(
+                                color: theme.colorScheme.secondary,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Decorative arrow, exclude from reading
+                      ExcludeSemantics(
+                        child: Icon(Icons.arrow_forward_ios_rounded, 
+                            size: 14, 
+                            color: theme.colorScheme.secondary.withOpacity(0.5)),
+                      ),
+                    ],
                   ),
                 ),
-              );
-            },
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
-                    blurRadius: 15,
-                    offset: const Offset(0, 8),
-                  )
-                ],
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: const Color(0xFFF5F5F7),
-                    backgroundImage: partner.profilePictureUrl.isNotEmpty 
-                        ? NetworkImage(partner.profilePictureUrl) 
-                        : null,
-                    child: partner.profilePictureUrl.isEmpty 
-                        ? Icon(Icons.person_rounded, color: theme.colorScheme.primary) 
-                        : null,
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          displayName, // 🟢 FIXED: Now shows real name
-                          style: TextStyle(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 17,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          "Tap to start chatting",
-                          style: TextStyle(
-                            color: theme.colorScheme.secondary,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(Icons.arrow_forward_ios_rounded, 
-                      size: 14, 
-                      color: theme.colorScheme.secondary.withOpacity(0.5)),
-                ],
               ),
             ),
           ),
@@ -255,4 +276,3 @@ class _ChatTile extends StatelessWidget {
     );
   }
 }
-

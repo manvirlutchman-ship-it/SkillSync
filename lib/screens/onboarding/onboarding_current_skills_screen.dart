@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skillsync/services/database_service.dart';
-import 'package:skillsync/widgets/primary_button.dart'; // Use our consistent widget
+import 'package:skillsync/widgets/primary_button.dart';
 
 class OnboardingCurrentSkillsScreen extends StatefulWidget {
   const OnboardingCurrentSkillsScreen({super.key});
@@ -30,7 +30,7 @@ class _OnboardingCurrentSkillsScreenState
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor, // Apple Light Gray
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -39,7 +39,7 @@ class _OnboardingCurrentSkillsScreenState
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(24), // Softer corner for the main card
+              borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.03),
@@ -55,13 +55,17 @@ class _OnboardingCurrentSkillsScreenState
                 
                 const SizedBox(height: 16),
                 
-                Text(
-                  'What can you teach?',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.primary,
-                    letterSpacing: -0.8,
+                // Semantic Header
+                Semantics(
+                  header: true,
+                  child: Text(
+                    'What can you teach?',
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.primary,
+                      letterSpacing: -0.8,
+                    ),
                   ),
                 ),
                 
@@ -82,7 +86,7 @@ class _OnboardingCurrentSkillsScreenState
                 
                 const SizedBox(height: 20),
 
-                // Categories (Apple Style Capsules)
+                // Categories
                 _buildCategoryList(colorScheme),
                 
                 const SizedBox(height: 20),
@@ -92,13 +96,16 @@ class _OnboardingCurrentSkillsScreenState
 
                 const SizedBox(height: 20),
 
-                // 🟢 Using PrimaryButton for consistency
                 _isLoading
-                    ? const Center(child: CircularProgressIndicator())
+                    ? Semantics(
+                        label: "Saving skills",
+                        child: const Center(child: CircularProgressIndicator())
+                      )
                     : PrimaryButton(
                         label: 'CONTINUE (${_selectedSkills.length})',
                         onPressed: _handleConfirm,
                         height: 50,
+                        // Ensure the button state is announced with the dynamic count
                       ),
               ],
             ),
@@ -121,13 +128,17 @@ class _OnboardingCurrentSkillsScreenState
     try {
       final userId = FirebaseAuth.instance.currentUser?.uid;
       if (userId != null) {
+        // Convert Set to List to avoid duplicates
+        List<String> skillsList = _selectedSkills.toList();
+        
         await DatabaseService().saveUserSkills(
           userId: userId,
-          skills: _selectedSkills.toList(),
+          skills: skillsList, // Pass the List<String>
           type: "teaching",
         );
 
         if (mounted) {
+          // Navigate to the next screen (Learning Skills)
           Navigator.pushNamed(context, '/onboarding_new');
         }
       }
@@ -145,19 +156,23 @@ class _OnboardingCurrentSkillsScreenState
   // --- UI HELPER WIDGETS ---
 
   Widget _buildStepIndicator(ColorScheme colorScheme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F7), // Inner background
-        borderRadius: BorderRadius.circular(30),
-      ),
-      child: Text(
-        'STEP 1 OF 2',
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-          color: colorScheme.secondary,
-          letterSpacing: 1.1,
+    return Semantics(
+      label: "Step 1 of 2",
+      excludeSemantics: true, // Read the label instead of the text child
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F7),
+          borderRadius: BorderRadius.circular(30),
+        ),
+        child: Text(
+          'STEP 1 OF 2',
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            color: colorScheme.secondary,
+            letterSpacing: 1.1,
+          ),
         ),
       ),
     );
@@ -166,6 +181,7 @@ class _OnboardingCurrentSkillsScreenState
   Widget _buildSearchBar(ColorScheme colorScheme) {
     return TextField(
       style: TextStyle(color: colorScheme.primary, fontSize: 14),
+      textInputAction: TextInputAction.search, // Keyboard shows "Search"
       decoration: InputDecoration(
         hintText: 'Search skills...',
         prefixIcon: Icon(Icons.search_rounded, color: colorScheme.secondary, size: 20),
@@ -208,41 +224,50 @@ class _OnboardingCurrentSkillsScreenState
         crossAxisCount: 2,
         mainAxisSpacing: 12,
         crossAxisSpacing: 12,
-        childAspectRatio: 2.5, // Better proportion for text
+        childAspectRatio: 2.5,
       ),
       itemCount: skills.length,
       itemBuilder: (context, index) {
         final skill = skills[index];
         final isSelected = _selectedSkills.contains(skill);
-        return GestureDetector(
-          onTap: () => setState(
-            () => isSelected ? _selectedSkills.remove(skill) : _selectedSkills.add(skill),
-          ),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: isSelected ? colorScheme.primary : Colors.white,
-              border: Border.all(
-                color: isSelected ? colorScheme.primary : const Color(0xFFE8E8ED),
-                width: 1.5,
-              ),
-              borderRadius: BorderRadius.circular(16), // Consistent Squircle
-              boxShadow: [
-                if (!isSelected)
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
-                    blurRadius: 5,
-                    offset: const Offset(0, 2),
-                  )
-              ],
+        
+        // Wrap in Semantics to indicate selection state to screen readers
+        return Semantics(
+          button: true,
+          selected: isSelected,
+          label: skill,
+          hint: isSelected ? "Double tap to unselect" : "Double tap to select",
+          child: GestureDetector(
+            onTap: () => setState(
+              () => isSelected ? _selectedSkills.remove(skill) : _selectedSkills.add(skill),
             ),
-            child: Text(
-              skill,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-                color: isSelected ? Colors.white : colorScheme.primary,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: isSelected ? colorScheme.primary : Colors.white,
+                border: Border.all(
+                  color: isSelected ? colorScheme.primary : const Color(0xFFE8E8ED),
+                  width: 1.5,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  if (!isSelected)
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.02),
+                      blurRadius: 5,
+                      offset: const Offset(0, 2),
+                    )
+                ],
+              ),
+              child: Text(
+                skill,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: isSelected ? Colors.white : colorScheme.primary,
+                ),
               ),
             ),
           ),

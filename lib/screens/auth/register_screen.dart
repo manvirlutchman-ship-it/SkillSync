@@ -33,12 +33,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
+      // Increased height to 56 (standard) to ensure back button has 48px touch target
       appBar: AppBar(
-        toolbarHeight: 40,
+        toolbarHeight: 56,
         backgroundColor: Colors.transparent,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: colorScheme.primary, size: 18),
-          onPressed: () => Navigator.pop(context),
+        leading: Semantics(
+          label: "Back",
+          button: true,
+          child: IconButton(
+            tooltip: "Back",
+            icon: Icon(Icons.arrow_back_ios_new_rounded, color: colorScheme.primary, size: 18),
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
       ),
       body: SafeArea(
@@ -49,13 +55,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  'Create Account',
-                  style: TextStyle(
-                    color: colorScheme.primary, 
-                    fontSize: 26, 
-                    fontWeight: FontWeight.bold, 
-                    letterSpacing: -0.8
+                Semantics(
+                  header: true,
+                  child: Text(
+                    'Create Account',
+                    style: TextStyle(
+                      color: colorScheme.primary, 
+                      fontSize: 26, 
+                      fontWeight: FontWeight.bold, 
+                      letterSpacing: -0.8
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -72,33 +81,65 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   child: Column(
                     children: [
-                      Text(
-                        'Join SkillSync',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: colorScheme.onSurface),
+                      Semantics(
+                        header: true,
+                        child: Text(
+                          'Join SkillSync',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: colorScheme.onSurface),
+                        ),
                       ),
                       const SizedBox(height: 20),
+                      
+                      // Email Field
                       TextFormField(
                         controller: _emailController,
                         style: TextStyle(color: colorScheme.onSurface, fontSize: 14),
-                        decoration: const InputDecoration(labelText: 'Email', isDense: true),
+                        keyboardType: TextInputType.emailAddress,
+                        autofillHints: const [AutofillHints.email],
+                        textInputAction: TextInputAction.next,
+                        decoration: const InputDecoration(
+                          labelText: 'Email', 
+                          hintText: 'Enter your email address',
+                          isDense: true
+                        ),
                       ),
                       const SizedBox(height: 10),
+                      
+                      // Password Field
                       TextFormField(
                         controller: _passwordController,
                         obscureText: true,
                         style: TextStyle(color: colorScheme.onSurface, fontSize: 14),
-                        decoration: const InputDecoration(labelText: 'Password', isDense: true),
+                        autofillHints: const [AutofillHints.newPassword],
+                        textInputAction: TextInputAction.next,
+                        decoration: const InputDecoration(
+                          labelText: 'Password', 
+                          hintText: 'Create a password',
+                          isDense: true
+                        ),
                       ),
                       const SizedBox(height: 10),
+                      
+                      // Confirm Password Field
                       TextFormField(
                         controller: _confirmPasswordController,
                         obscureText: true,
                         style: TextStyle(color: colorScheme.onSurface, fontSize: 14),
-                        decoration: const InputDecoration(labelText: 'Confirm Password', isDense: true),
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) => _handleRegister(),
+                        decoration: const InputDecoration(
+                          labelText: 'Confirm Password', 
+                          hintText: 'Re-enter your password',
+                          isDense: true
+                        ),
                       ),
                       const SizedBox(height: 24),
+                      
                       _isLoading 
-                        ? const SizedBox(height: 48, child: Center(child: CircularProgressIndicator()))
+                        ? Semantics(
+                            label: "Registering account",
+                            child: const SizedBox(height: 48, child: Center(child: CircularProgressIndicator())),
+                          )
                         : PrimaryButton(
                             label: 'Register', 
                             onPressed: _handleRegister, 
@@ -120,15 +161,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   _handleGoogleLogin
                 ),
                 const SizedBox(height: 8),
-                // _socialButton(
-                //   context, 
-                //   'assets/facebook.png', 
-                //   'Join with Facebook', 
-                //   () {}
-                // ),
                 
-                // const SizedBox(height: 12),
                 TextButton(
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(48, 48), // Ensure minimum touch target
+                  ),
                   onPressed: () => Navigator.pop(context),
                   child: Text(
                     'Have an account? Login', 
@@ -145,30 +182,46 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Widget _socialButton(BuildContext context, String asset, String text, VoidCallback onTap) {
     final colorScheme = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: _isLoading ? null : onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
+    
+    // Group elements so TalkBack reads "Join with Google, Button" instead of separate image and text
+    return MergeSemantics(
+      child: Semantics(
+        button: true,
+        label: text,
+        enabled: !_isLoading,
+        child: InkWell(
+          onTap: _isLoading ? null : onTap,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: colorScheme.primary.withOpacity(0.05)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset(asset, height: 18, width: 18),
-            const SizedBox(width: 10),
-            Text(text, style: TextStyle(color: colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
-          ],
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(minHeight: 48), // Accessible height
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: colorScheme.primary.withOpacity(0.05)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Hide image from semantics as the parent label covers it
+                ExcludeSemantics(
+                  child: Image.asset(asset, height: 18, width: 18),
+                ),
+                const SizedBox(width: 10),
+                Text(text, style: TextStyle(color: colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
   void _handleRegister() async {
+    // Dismiss keyboard for accessibility focus
+    FocusManager.instance.primaryFocus?.unfocus();
+
     if (_emailController.text.trim().isEmpty || _passwordController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please fill in all fields")));
       return;

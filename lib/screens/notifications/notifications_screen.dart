@@ -24,7 +24,10 @@ class NotificationsScreen extends StatelessWidget {
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: const AppAppBar(title: 'Notifications', showBack: false),
       body: uid == null
-          ? const Center(child: CircularProgressIndicator())
+          ? Semantics(
+              label: "Loading user data",
+              child: const Center(child: CircularProgressIndicator()),
+            )
           : StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('Notification')
@@ -35,12 +38,12 @@ class NotificationsScreen extends StatelessWidget {
                   .where(
                     'read_at',
                     isNull: true,
-                  ) // 🟢 FIX 1: Only show unread/active notifications
+                  ) 
                   .orderBy('created_at', descending: true)
                   .snapshots(),
 
               builder: (context, snapshot) {
-                // 1. Check for errors (Like missing index)
+                // 1. Check for errors
                 if (snapshot.hasError) {
                   debugPrint("!!! FIRESTORE ERROR: ${snapshot.error}");
                   return Center(
@@ -57,13 +60,25 @@ class NotificationsScreen extends StatelessWidget {
 
                 // 2. Handle Waiting State
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return Semantics(
+                    label: "Loading notifications",
+                    child: const Center(child: CircularProgressIndicator()),
+                  );
                 }
 
                 // 3. Handle Empty State
                 final docs = snapshot.data?.docs ?? [];
                 if (docs.isEmpty) {
-                  return const Center(child: Text("No notifications yet"));
+                  return Center(
+                    child: Text(
+                      "No notifications yet",
+                      // Ensure text is readable and announced
+                      style: TextStyle(
+                        fontSize: 16, 
+                        color: colorScheme.onSurface.withOpacity(0.6)
+                      ),
+                    ),
+                  );
                 }
 
                 // 4. Build List
@@ -98,7 +113,6 @@ class NotificationsScreen extends StatelessWidget {
                         ),
                       );
                     } catch (e) {
-                      // This catches model parsing errors
                       debugPrint("Error parsing notification: $e");
                       return const SizedBox.shrink();
                     }
@@ -133,24 +147,40 @@ class _NotificationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    
+    final bool isUnread = notification.readAt == null;
+    final String title = _buildTitle(notification);
+    final String subtitle = _buildSubtitle(notification);
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        title: Text(
-          _buildTitle(notification),
-          style: theme.textTheme.titleMedium,
+    // Group Semantics: "Unread, New Match, Related to match 123..."
+    // This prevents the screen reader from treating the icon and text as separate focusable items.
+    return MergeSemantics(
+      child: Semantics(
+        button: true, // Identifies this card as clickable
+        label: isUnread ? "Unread notification: $title" : "Notification: $title",
+        hint: "Double tap to view details",
+        child: Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ListTile(
+            contentPadding: const EdgeInsets.all(16),
+            onTap: onTap,
+            title: Text(
+              title,
+              style: theme.textTheme.titleMedium,
+            ),
+            subtitle: Text(
+              subtitle,
+              style: theme.textTheme.bodySmall,
+            ),
+            // The visual dot is purely decorative; the status is now in the semantic label.
+            trailing: isUnread
+                ? ExcludeSemantics(
+                    child: Icon(Icons.circle, size: 10, color: theme.colorScheme.primary),
+                  )
+                : null,
+          ),
         ),
-        subtitle: Text(
-          _buildSubtitle(notification),
-          style: theme.textTheme.bodySmall,
-        ),
-        trailing: notification.readAt == null
-            ? const Icon(Icons.circle, size: 10) // unread indicator
-            : null,
-        onTap: onTap,
       ),
     );
   }
