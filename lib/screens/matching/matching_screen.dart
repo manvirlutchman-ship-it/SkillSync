@@ -198,7 +198,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       // Ensure Back Button in Custom AppBar is accessible
-      appBar: const AppAppBar(title: 'Discover Matches', showBack: true),
+      appBar: const AppAppBar(title: 'Discover Matches', showBack: false),
       body: SafeArea(
         child: _isLoading
             ? Semantics(
