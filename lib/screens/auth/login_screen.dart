@@ -116,15 +116,15 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
                 
-                // Facebook Login Button (Logic empty for now)
-                _socialButton(
-                  context, 
-                  'assets/facebook.png', 
-                  'Login with Facebook', 
-                  () {}
-                ),
+                // // Facebook Login Button (Logic empty for now)
+                // _socialButton(
+                //   context, 
+                //   'assets/facebook.png', 
+                //   'Login with Facebook', 
+                //   () {}
+                // ),
 
-                const SizedBox(height: 16),
+                // const SizedBox(height: 16),
                 TextButton(
                   onPressed: () => Navigator.pushNamed(context, '/register'),
                   child: Text(

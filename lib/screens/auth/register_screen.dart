@@ -120,14 +120,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   _handleGoogleLogin
                 ),
                 const SizedBox(height: 8),
-                _socialButton(
-                  context, 
-                  'assets/facebook.png', 
-                  'Join with Facebook', 
-                  () {}
-                ),
+                // _socialButton(
+                //   context, 
+                //   'assets/facebook.png', 
+                //   'Join with Facebook', 
+                //   () {}
+                // ),
                 
-                const SizedBox(height: 12),
+                // const SizedBox(height: 12),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: Text(
