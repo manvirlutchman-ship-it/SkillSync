@@ -1,7 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 // 1. We alias the import as 'gsi' to avoid naming conflicts
-import 'package:google_sign_in/google_sign_in.dart' as gsi; 
+import 'package:google_sign_in/google_sign_in.dart' as gsi;
+import 'package:skillsync/services/database_service.dart'; 
 
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -69,6 +70,36 @@ class AuthService extends ChangeNotifier {
       await _auth.signOut();         
     } catch (e) {
       debugPrint("Sign Out Error: $e");
+    }
+  }
+
+  //Delete Auth Account
+  Future<String?> deleteAccount() async {
+    try {
+      // 🟢 Force a refresh of the current user instance
+      User? user = FirebaseAuth.instance.currentUser; 
+      
+      if (user != null) {
+        final String uid = user.uid;
+        debugPrint("!!! Attempting to delete UID: $uid !!!");
+
+        // 1. Clean up Firestore data (profiles, etc.)
+        await DatabaseService().deleteUserData(uid);
+        
+        // 2. Delete the Auth account
+        await user.delete();
+        
+        debugPrint("!!! Deletion successful !!!");
+        return "success";
+      } else {
+        debugPrint("!!! Deletion Failed: currentUser is null !!!");
+        return "User session not found.";
+      }
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') return "reauthenticate";
+      return e.message;
+    } catch (e) {
+      return e.toString();
     }
   }
 }

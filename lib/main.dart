@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 // SETTINGS & SERVICES
 import 'package:skillsync/firebase_options.dart';
+import 'package:skillsync/screens/settings/settings_screen.dart';
 import 'package:skillsync/services/auth_service.dart';
 import 'package:skillsync/providers/user_provider.dart';
 import 'package:skillsync/theme/app_theme.dart';
@@ -22,6 +23,7 @@ import 'package:skillsync/screens/profile/edit_profile_screen.dart';
 import 'package:skillsync/screens/onboarding/onboarding_current_skills_screen.dart';
 import 'package:skillsync/screens/onboarding/onboarding_new_skills_screen.dart';
 import 'package:skillsync/screens/splash/splash_screen.dart';
+import 'package:skillsync/screens/settings/settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -84,8 +86,8 @@ class SkillSyncApp extends StatelessWidget {
         '/edit_profile': (context) => const EditProfileScreen(),
         '/notifications': (context) => const NotificationsScreen(),
         '/community': (context) => const CommunityPage(),
-        '/explore': (context) =>
-            const MatchingScreen(), // Redirected as requested
+        '/explore': (context) => const MatchingScreen(), // Redirected as requested
+        '/settings': (context) => const SettingsScreen(),
       },
     );
   }

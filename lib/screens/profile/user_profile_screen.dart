@@ -49,8 +49,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       );
     }
 
-    final String displayName =
-        user.fullName.trim().isEmpty ? user.username : user.fullName;
+    final String displayName = user.fullName.trim().isEmpty
+        ? user.username
+        : user.fullName;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F7),
@@ -59,6 +60,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         elevation: 0,
         automaticallyImplyLeading: false,
         actions: [
+          /// EDIT PROFILE
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
@@ -66,7 +68,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               shape: BoxShape.circle,
             ),
             child: IconButton(
-              // Meets 48x48 tap target via IconButton default constraints
               icon: const Icon(
                 Icons.edit_note_rounded,
                 color: Color(0xFF1D1D1F),
@@ -76,6 +77,26 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               onPressed: () => Navigator.pushNamed(context, '/edit_profile'),
             ),
           ),
+
+          /// SETTINGS (NEW)
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.85),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: const Icon(
+                Icons.settings_rounded,
+                color: Color(0xFF1D1D1F),
+                size: 22,
+              ),
+              tooltip: 'Settings',
+              onPressed: () => Navigator.pushNamed(context, '/settings'),
+            ),
+          ),
+
+          /// LOGOUT
           Container(
             margin: const EdgeInsets.only(right: 20),
             decoration: BoxDecoration(
@@ -167,8 +188,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       final authService = Provider.of<AuthService>(context, listen: false);
       authService.signOut().then((_) {
         if (context.mounted) {
-          Navigator.of(context)
-              .pushNamedAndRemoveUntil('/login', (route) => false);
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/login', (route) => false);
         }
       });
     } catch (e) {
@@ -274,8 +296,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.favorite_rounded,
-                    color: Color(0xFF1D1D1F), size: 20),
+                const Icon(
+                  Icons.favorite_rounded,
+                  color: Color(0xFF1D1D1F),
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   '${user.likesCount} LIKES',
