@@ -254,5 +254,34 @@ class DatabaseService {
     }
   }
 
+
+
+// 🟢 THE LIKE FUNCTION
+Future<void> likeUser(String targetUserId, String myId) async {
+  // We create a unique ID based on both users: "myId_targetId"
+  // If this document exists, Firestore won't create a second one.
+  final likeId = "${myId}_$targetUserId";
+  final likeRef = _db.collection('Like').doc(likeId);
+
+  final doc = await likeRef.get();
+  if (!doc.exists) {
+    // 1. Create the like record
+    await likeRef.set({'from': myId, 'to': targetUserId});
+    // 2. Increment the user's count
+    await _db.collection('User').doc(targetUserId).update({
+      'likes_count': FieldValue.increment(1),
+    });
+  }
+}
+// 🟢 ADD THIS: Check if a like record exists
+  Future<bool> checkIfLiked(String myId, String targetUserId) async {
+    try {
+      final String likeDocId = "${myId}_$targetUserId";
+      final doc = await _db.collection('Like').doc(likeDocId).get();
+      return doc.exists; // Returns true if you already liked them
+    } catch (e) {
+      return false;
+    }
+  }
   // Add more methods as needed using the same .toMap() pattern
 }

@@ -56,11 +56,14 @@ class _MatchingScreenState extends State<MatchingScreen> {
   Future<void> _loadSpecificMatch(String matchId) async {
     if (!mounted) return;
     setState(() => _isLoading = true);
-    
+
     try {
       debugPrint("!!! Loading Match Document: $matchId !!!");
-      final matchDoc = await FirebaseFirestore.instance.collection('Match').doc(matchId).get();
-      
+      final matchDoc = await FirebaseFirestore.instance
+          .collection('Match')
+          .doc(matchId)
+          .get();
+
       if (!matchDoc.exists) {
         debugPrint("!!! Match document does not exist !!!");
         if (mounted) setState(() => _isLoading = false);
@@ -87,6 +90,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
   // 1. Fetch matches and filter out "Empty" users
   Future<void> _loadMatches() async {
     if (!mounted) return;
@@ -267,7 +271,26 @@ class _MatchingScreenState extends State<MatchingScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const RatingRow(rating: 5), // Placeholder rating
+                              // Find RatingRow(rating: 5) and replace with:
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.favorite_rounded,
+                                    color: Colors.redAccent,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '${_matches[_currentIndex].likesCount}',
+                                    style: TextStyle(
+                                      color: colorScheme.primary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ],
+                              ),
+
                               IconButton(
                                 icon: Icon(
                                   Icons.info_outline_rounded,
@@ -467,7 +490,6 @@ class _MatchingScreenState extends State<MatchingScreen> {
             PrimaryButton(
               label: "GO BACK HOME",
               onPressed: () => Navigator.pushReplacementNamed(context, '/home'),
-
             ),
           ],
         ),

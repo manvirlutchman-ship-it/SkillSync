@@ -1,16 +1,44 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:skillsync/models/user_model.dart';
 import 'package:skillsync/models/userskill_model.dart';
 import 'package:skillsync/services/database_service.dart';
-import 'package:skillsync/widgets/rating_row.dart';
+//import 'package:skillsync/widgets/rating_row.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  int localLikesOffset = 0;
+  bool hasLikedLocally = false;
+
+  bool hasLikedFromDb = false;
+  bool isCheckingLikeStatus = true;
+  final String myId = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+  Future<void> _checkIfAlreadyLiked(String viewedUserId) async {
+    final liked = await DatabaseService().checkIfLiked(myId, viewedUserId);
+
+    if (!mounted) return;
+
+    setState(() {
+      hasLikedFromDb = liked;
+      isCheckingLikeStatus = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     // 🟢 EXTRACT THE USER DATA passed from MatchingScreen
-    final UserModel user = ModalRoute.of(context)!.settings.arguments as UserModel;
+    final UserModel user =
+        ModalRoute.of(context)!.settings.arguments as UserModel;
+    if (isCheckingLikeStatus) {
+      _checkIfAlreadyLiked(user.id);
+    }
     final dbService = DatabaseService();
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -21,7 +49,11 @@ class ProfileScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: colorScheme.primary, size: 20),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: colorScheme.primary,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text("View Profile"),
@@ -49,7 +81,10 @@ class ProfileScreen extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     '@${user.username}',
-                    style: const TextStyle(color: Color(0xFF86868B), fontSize: 16),
+                    style: const TextStyle(
+                      color: Color(0xFF86868B),
+                      fontSize: 16,
+                    ),
                   ),
 
                   const SizedBox(height: 24),
@@ -62,26 +97,82 @@ class ProfileScreen extends StatelessWidget {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10))
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
                       ],
                     ),
                     child: Column(
                       children: [
                         Text(
-                          user.userBio.isNotEmpty ? user.userBio : "No bio provided.",
+                          user.userBio.isNotEmpty
+                              ? user.userBio
+                              : "No bio provided.",
                           textAlign: TextAlign.center,
-                          style: const TextStyle(color: Color(0xFF1D1D1F), fontSize: 15, height: 1.5),
+                          style: const TextStyle(
+                            color: Color(0xFF1D1D1F),
+                            fontSize: 15,
+                            height: 1.5,
+                          ),
                         ),
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 20),
-                          child: Divider(color: Color(0xFFF5F5F7), thickness: 1.5),
+                          child: Divider(
+                            color: Color(0xFFF5F5F7),
+                            thickness: 1.5,
+                          ),
                         ),
+                        // 🟢 Interactive Like Area
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Text('Rating', style: TextStyle(color: Color(0xFF86868B), fontWeight: FontWeight.w600)),
-                            SizedBox(width: 12),
-                            RatingRow(rating: 5),
+                          children: [
+                            Text(
+                              '${user.likesCount + localLikesOffset} LIKES',
+                              style: const TextStyle(
+                                color: Color(0xFF1D1D1F),
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                                letterSpacing: 1.1,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+
+                            isCheckingLikeStatus
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : IconButton(
+                                    icon: Icon(
+                                      (hasLikedLocally || hasLikedFromDb)
+                                          ? Icons.favorite_rounded
+                                          : Icons.favorite_outline_rounded,
+                                      color: (hasLikedLocally || hasLikedFromDb)
+                                          ? Colors.redAccent
+                                          : const Color(0xFF1D1D1F),
+                                    ),
+                                    onPressed:
+                                        (hasLikedLocally || hasLikedFromDb)
+                                        ? null
+                                        : () async {
+                                            if (myId == user.id) return;
+
+                                            setState(() {
+                                              localLikesOffset = 1;
+                                              hasLikedLocally = true;
+                                            });
+
+                                            await DatabaseService().likeUser(
+                                              user.id,
+                                              myId,
+                                            );
+                                          },
+                                  ),
                           ],
                         ),
                       ],
@@ -95,11 +186,17 @@ class ProfileScreen extends StatelessWidget {
                     future: dbService.getUserSkills(user.id),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+                        return const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        );
                       }
                       final allSkills = snapshot.data ?? [];
-                      final teachingSkills = allSkills.where((s) => s.teachingOrLearning == 'teaching').toList();
-                      final learningSkills = allSkills.where((s) => s.teachingOrLearning == 'learning').toList();
+                      final teachingSkills = allSkills
+                          .where((s) => s.teachingOrLearning == 'teaching')
+                          .toList();
+                      final learningSkills = allSkills
+                          .where((s) => s.teachingOrLearning == 'learning')
+                          .toList();
 
                       return Column(
                         children: [
@@ -129,8 +226,11 @@ class ProfileScreen extends StatelessWidget {
           width: double.infinity,
           decoration: BoxDecoration(
             color: const Color(0xFFE8E8ED),
-            image: user.profileBannerUrl.isNotEmpty 
-                ? DecorationImage(image: NetworkImage(user.profileBannerUrl), fit: BoxFit.cover)
+            image: user.profileBannerUrl.isNotEmpty
+                ? DecorationImage(
+                    image: NetworkImage(user.profileBannerUrl),
+                    fit: BoxFit.cover,
+                  )
                 : null,
           ),
         ),
@@ -141,12 +241,23 @@ class ProfileScreen extends StatelessWidget {
           child: Center(
             child: Container(
               padding: const EdgeInsets.all(5),
-              decoration: const BoxDecoration(color: Color(0xFFF5F5F7), shape: BoxShape.circle),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF5F5F7),
+                shape: BoxShape.circle,
+              ),
               child: CircleAvatar(
                 radius: 50,
                 backgroundColor: Colors.white,
-                backgroundImage: user.profilePictureUrl.isNotEmpty ? NetworkImage(user.profilePictureUrl) : null,
-                child: user.profilePictureUrl.isEmpty ? const Icon(Icons.person_rounded, color: Color(0xFF86868B), size: 45) : null,
+                backgroundImage: user.profilePictureUrl.isNotEmpty
+                    ? NetworkImage(user.profilePictureUrl)
+                    : null,
+                child: user.profilePictureUrl.isEmpty
+                    ? const Icon(
+                        Icons.person_rounded,
+                        color: Color(0xFF86868B),
+                        size: 45,
+                      )
+                    : null,
               ),
             ),
           ),
@@ -159,10 +270,21 @@ class ProfileScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(color: Color(0xFF86868B), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+        Text(
+          title,
+          style: const TextStyle(
+            color: Color(0xFF86868B),
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.2,
+          ),
+        ),
         const SizedBox(height: 12),
         if (skills.isEmpty)
-          const Text("None added.", style: TextStyle(color: Color(0xFF86868B), fontSize: 14))
+          const Text(
+            "None added.",
+            style: TextStyle(color: Color(0xFF86868B), fontSize: 14),
+          )
         else
           Wrap(
             spacing: 10,
@@ -185,9 +307,22 @@ class _SkillTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Text(label, style: const TextStyle(color: Color(0xFF1D1D1F), fontSize: 14, fontWeight: FontWeight.w600)),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Color(0xFF1D1D1F),
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }

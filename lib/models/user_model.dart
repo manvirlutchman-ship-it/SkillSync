@@ -10,6 +10,9 @@ class UserModel {
   final String userBio; // "Software engineering student..."
   final String username; // "alex.perera@example.com"
   final bool isOnboarded;
+  final int likesCount;
+  
+
 
   UserModel({
     required this.id,
@@ -21,6 +24,8 @@ class UserModel {
     required this.userBio,
     required this.username,
     required this.isOnboarded,
+    required this.likesCount,
+
   });
 
   /// Helper getter to show the full name in the UI without extra logic
@@ -44,15 +49,18 @@ class UserModel {
       username: data['username'] ?? '',
 
       isOnboarded: data['is_onboarded'] ?? false,
+      likesCount: (data['likes_count'] ?? 0).toInt(),
+
     );
   }
 
-  
+
   UserModel copyWith({
     String? firstName,
     String? lastName,
     String? userBio,
     bool? isOnboarded,
+    int? likesCount,
   }) {
     return UserModel(
       id: id,
@@ -64,6 +72,8 @@ class UserModel {
       lastName: lastName ?? this.lastName,
       userBio: userBio ?? this.userBio,
       isOnboarded: isOnboarded ?? this.isOnboarded,
+      likesCount: likesCount ?? this.likesCount,
+
     );
   }
 
@@ -78,6 +88,8 @@ class UserModel {
       'user_bio': userBio,
       'username': username,
       'is_onboarded': isOnboarded,
+      'likes_count': likesCount,
+
     };
   }
 }

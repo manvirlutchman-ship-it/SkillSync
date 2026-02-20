@@ -5,7 +5,7 @@ import 'package:skillsync/providers/user_provider.dart';
 import 'package:skillsync/services/database_service.dart';
 import 'package:skillsync/services/auth_service.dart';
 import 'package:skillsync/models/userskill_model.dart';
-import 'package:skillsync/models/user_model.dart'; 
+import 'package:skillsync/models/user_model.dart';
 import 'package:skillsync/widgets/rating_row.dart';
 import 'package:skillsync/widgets/bottom_nav.dart';
 
@@ -17,7 +17,6 @@ class UserProfileScreen extends StatefulWidget {
 }
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
-  
   @override
   void initState() {
     super.initState();
@@ -42,16 +41,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     if (user == null) {
       return const Scaffold(
         backgroundColor: Color(0xFFF5F5F7),
-        body: Center(child: CircularProgressIndicator(color: Color(0xFF1D1D1F))),
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFF1D1D1F)),
+        ),
       );
     }
 
-    final String displayName = user.fullName.trim().isEmpty ? user.username : user.fullName;
+    final String displayName = user.fullName.trim().isEmpty
+        ? user.username
+        : user.fullName;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F7), // Apple background gray
-      // Update the AppBar section of your UserProfileScreen (lib/screens/profile/user_profile_screen.dart)
 
+      // Update the AppBar section of your UserProfileScreen (lib/screens/profile/user_profile_screen.dart)
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -66,9 +69,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ),
             child: IconButton(
               icon: const Icon(
-                Icons.edit_note_rounded, 
+                Icons.edit_note_rounded,
                 color: Color(0xFF1D1D1F), // Dark Grey
-                size: 26
+                size: 26,
               ),
               tooltip: 'Edit Profile',
               onPressed: () => Navigator.pushNamed(context, '/edit_profile'),
@@ -84,23 +87,29 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ),
             child: IconButton(
               icon: const Icon(
-                Icons.logout_rounded, 
+                Icons.logout_rounded,
                 color: Color(0xFF1D1D1F), // Dark Grey
-                size: 22
+                size: 22,
               ),
               tooltip: 'Logout',
               onPressed: () async {
                 showDialog(
                   context: context,
                   barrierDismissible: false,
-                  builder: (context) => const Center(child: CircularProgressIndicator()),
+                  builder: (context) =>
+                      const Center(child: CircularProgressIndicator()),
                 );
                 try {
                   context.read<UserProvider>().clearUser();
-                  final authService = Provider.of<AuthService>(context, listen: false);
+                  final authService = Provider.of<AuthService>(
+                    context,
+                    listen: false,
+                  );
                   await authService.signOut();
                   if (context.mounted) {
-                    Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                    Navigator.of(
+                      context,
+                    ).pushNamedAndRemoveUntil('/login', (route) => false);
                   }
                 } catch (e) {
                   if (context.mounted) Navigator.pop(context);
@@ -110,24 +119,24 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           ),
         ],
       ),
-      extendBodyBehindAppBar: true, 
+      extendBodyBehindAppBar: true,
       body: SingleChildScrollView(
         child: Column(
           children: [
-            _buildProfileHeader(user), 
+            _buildProfileHeader(user),
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
                   const SizedBox(height: 55),
-                  
+
                   // Name Section
                   Text(
                     displayName,
                     style: const TextStyle(
-                      color: Color(0xFF1D1D1F), 
-                      fontSize: 30, 
+                      color: Color(0xFF1D1D1F),
+                      fontSize: 30,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.8,
                     ),
@@ -156,38 +165,48 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           color: Colors.black.withOpacity(0.03),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
-                        )
+                        ),
                       ],
                     ),
                     child: Column(
                       children: [
                         Text(
-                          user.userBio.isNotEmpty ? user.userBio : "No bio available.",
+                          user.userBio.isNotEmpty
+                              ? user.userBio
+                              : "No bio available.",
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                            color: Color(0xFF1D1D1F), 
-                            fontSize: 15, 
+                            color: Color(0xFF1D1D1F),
+                            fontSize: 15,
                             height: 1.5,
                             fontWeight: FontWeight.w400,
                           ),
                         ),
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 20),
-                          child: Divider(color: Color(0xFFF5F5F7), thickness: 1.5),
+                          child: Divider(
+                            color: Color(0xFFF5F5F7),
+                            thickness: 1.5,
+                          ),
                         ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Text(
-                              'Rating', 
-                              style: TextStyle(
-                                color: Color(0xFF86868B), 
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              )
+                            const Icon(
+                              Icons.favorite_rounded,
+                              color: Color(0xFF1D1D1F),
+                              size: 20,
                             ),
-                            const SizedBox(width: 12),
-                            const RatingRow(rating: 5),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${user.likesCount} LIKES',
+                              style: const TextStyle(
+                                color: Color(0xFF1D1D1F),
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                                letterSpacing: 1.1,
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -201,14 +220,23 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     future: dbService.getUserSkills(user.id),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: Padding(
-                          padding: EdgeInsets.all(20.0),
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF86868B)),
-                        ));
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20.0),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Color(0xFF86868B),
+                            ),
+                          ),
+                        );
                       }
                       final allSkills = snapshot.data ?? [];
-                      final teachingSkills = allSkills.where((s) => s.teachingOrLearning == 'teaching').toList();
-                      final learningSkills = allSkills.where((s) => s.teachingOrLearning == 'learning').toList();
+                      final teachingSkills = allSkills
+                          .where((s) => s.teachingOrLearning == 'teaching')
+                          .toList();
+                      final learningSkills = allSkills
+                          .where((s) => s.teachingOrLearning == 'learning')
+                          .toList();
 
                       return Column(
                         children: [
@@ -227,7 +255,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         ),
       ),
       bottomNavigationBar: AppBottomNav(
-        currentIndex: 4, 
+        currentIndex: 4,
         onTap: (index) {
           if (index == 4) return;
           final routes = ['/home', '/notifications', '/explore', '/community'];
@@ -246,8 +274,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           width: double.infinity,
           decoration: BoxDecoration(
             color: const Color(0xFFE8E8ED), // Light gray placeholder
-            image: user.profileBannerUrl.isNotEmpty 
-                ? DecorationImage(image: NetworkImage(user.profileBannerUrl), fit: BoxFit.cover)
+            image: user.profileBannerUrl.isNotEmpty
+                ? DecorationImage(
+                    image: NetworkImage(user.profileBannerUrl),
+                    fit: BoxFit.cover,
+                  )
                 : null,
           ),
         ),
@@ -272,7 +303,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ? NetworkImage(user.profilePictureUrl)
                       : null,
                   child: user.profilePictureUrl.isEmpty
-                      ? const Icon(Icons.person_rounded, color: Color(0xFF86868B), size: 45)
+                      ? const Icon(
+                          Icons.person_rounded,
+                          color: Color(0xFF86868B),
+                          size: 45,
+                        )
                       : null,
                 ),
               ),
@@ -290,19 +325,22 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 12),
           child: Text(
-            title, 
+            title,
             style: const TextStyle(
-              color: Color(0xFF86868B), 
-              fontSize: 13, 
+              color: Color(0xFF86868B),
+              fontSize: 13,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.2,
-            )
+            ),
           ),
         ),
         if (skills.isEmpty)
           const Padding(
             padding: EdgeInsets.only(left: 4),
-            child: Text("No skills added yet.", style: TextStyle(color: Color(0xFF86868B), fontSize: 14)),
+            child: Text(
+              "No skills added yet.",
+              style: TextStyle(color: Color(0xFF86868B), fontSize: 14),
+            ),
           )
         else
           Wrap(
@@ -331,14 +369,14 @@ class _SkillTile extends StatelessWidget {
             color: Colors.black.withOpacity(0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: Text(
         label,
         style: const TextStyle(
-          color: Color(0xFF1D1D1F), 
-          fontSize: 14, 
+          color: Color(0xFF1D1D1F),
+          fontSize: 14,
           fontWeight: FontWeight.w600,
         ),
       ),
