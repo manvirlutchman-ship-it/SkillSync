@@ -91,29 +91,48 @@ class AppTheme {
     ),
   );
 
-  // ⚫ DARK THEME DEFINITION
+  // ⚫ DARK THEME (Apple Midnight Style)
   static ThemeData darkTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
-    scaffoldBackgroundColor: darkBackground,
-    primaryColor: darkSlate,
+    scaffoldBackgroundColor: Colors.black, // Pure Black background
+    
     colorScheme: const ColorScheme.dark(
-      primary: darkSlate,
-      secondary: darkGray,
-      surface: darkCard,
-      onSurface: darkSlate,
-      outline: Colors.white10,
+      primary: Colors.white,            // White text/icons
+      onPrimary: Colors.black,          // Black text on white buttons
+      secondary: Color(0xFF8E8E93),     // Apple System Gray
+      surface: Color(0xFF1C1C1E),       // Elevated gray (Card background)
+      onSurface: Colors.white,
+      outline: Color(0xFF38383A),       // Darker borders
     ),
-    textTheme: const TextTheme(
-      displayLarge: TextStyle(color: darkSlate, fontWeight: FontWeight.bold),
-      bodyLarge: TextStyle(color: darkSlate),
-      bodySmall: TextStyle(color: darkGray),
+
+    // Apply the same 16.0 Squircle logic globally
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      centerTitle: true,
+      titleTextStyle: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
     ),
+
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+    ),
+
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: const Color(0xFF1C1C1E),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFF38383A)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.white, width: 1.5),
       ),
     ),
   );

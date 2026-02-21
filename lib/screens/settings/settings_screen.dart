@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:skillsync/providers/theme_provider.dart';
 import 'package:skillsync/providers/user_provider.dart';
 import 'package:skillsync/services/auth_service.dart';
 import 'package:skillsync/widgets/primary_button.dart';
@@ -27,12 +28,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: colorScheme.primary, size: 20),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: colorScheme.primary,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           "Settings",
-          style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 17),
+          style: TextStyle(
+            color: colorScheme.primary,
+            fontWeight: FontWeight.bold,
+            fontSize: 17,
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -58,8 +67,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   Switch.adaptive(
                     activeColor: colorScheme.primary,
-                    value: isDarkMode,
-                    onChanged: (value) => setState(() => isDarkMode = value),
+                    value: context.watch<ThemeProvider>().isDarkMode,
+                    onChanged: (value) {
+                      // 🟢 Toggle the state
+                      context.read<ThemeProvider>().toggleTheme(value);
+                    },
                   ),
                 ],
               ),
@@ -76,9 +88,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16), // 🟢 Consistent Squircle
+                borderRadius: BorderRadius.circular(
+                  16,
+                ), // 🟢 Consistent Squircle
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10))
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
                 ],
               ),
               child: Column(
@@ -86,12 +104,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Text(
                     "Danger Zone",
-                    style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 16),
+                    style: TextStyle(
+                      color: colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   const Text(
                     "Once you delete your account, there is no going back. Please be certain.",
-                    style: TextStyle(color: Color(0xFF86868B), fontSize: 13, height: 1.4),
+                    style: TextStyle(
+                      color: Color(0xFF86868B),
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
                   ),
                   const SizedBox(height: 20),
                   PrimaryButton(
@@ -134,7 +160,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10))
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
         ],
       ),
       child: child,
@@ -151,18 +181,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
         surfaceTintColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text("Are you sure?"),
-        content: const Text("This will permanently delete your profile, skills, and chat history."),
+        content: const Text(
+          "This will permanently delete your profile, skills, and chat history.",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text("CANCEL", style: TextStyle(color: Color(0xFF86868B))),
+            child: const Text(
+              "CANCEL",
+              style: TextStyle(color: Color(0xFF86868B)),
+            ),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               _handleDelete();
             },
-            child: const Text("DELETE", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            child: const Text(
+              "DELETE",
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -182,9 +223,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     // Show loading spinner
     showDialog(
-      context: context, 
-      barrierDismissible: false, 
-      builder: (_) => const Center(child: CircularProgressIndicator(color: Color(0xFF1D1D1F)))
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF1D1D1F)),
+      ),
     );
 
     final authService = context.read<AuthService>();
@@ -198,17 +241,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
       }
     } else if (result == "reauthenticate") {
-      // THIS IS COMMON: Firebase requires you to have logged in within the last few minutes 
+      // THIS IS COMMON: Firebase requires you to have logged in within the last few minutes
       // to perform a sensitive action like deleting an account.
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Security check: Please log out and back in to delete your account."),
+          content: Text(
+            "Security check: Please log out and back in to delete your account.",
+          ),
           backgroundColor: Colors.orange,
         ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result ?? "Error"), backgroundColor: Colors.redAccent),
+        SnackBar(
+          content: Text(result ?? "Error"),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     }
   }

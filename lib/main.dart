@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 // SETTINGS & SERVICES
 import 'package:skillsync/firebase_options.dart';
+import 'package:skillsync/providers/theme_provider.dart';
 import 'package:skillsync/screens/settings/settings_screen.dart';
 import 'package:skillsync/services/auth_service.dart';
 import 'package:skillsync/providers/user_provider.dart';
@@ -34,6 +35,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
       child: const SkillSyncApp(),
     ),
@@ -45,49 +47,57 @@ class SkillSyncApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'SkillSync',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.light,
+    // 🟢 Wrap with Consumer<ThemeProvider>
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'SkillSync',
 
-      // 🛡️ THE SMART AUTH GATE
-      // lib/main.dart - build method inside SkillSyncApp
-      // lib/main.dart - Inside SkillSyncApp build method
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(body: Center(child: CircularProgressIndicator()));
-          }
+          // 🟢 Link the themeMode to our provider
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: themeProvider.themeMode,
 
-          // 🟢 SIMPLIFIED: If logged in, ALWAYS go to Home. 
-          // Home will handle the onboarding check itself.
-          if (snapshot.hasData && snapshot.data != null) {
-            return const HomeScreen();
-          }
-          
-          return const LoginScreen();
-        },
-      ),
+          // 🛡️ Auth gate
+          // lib/main.dart - build method
+          home: StreamBuilder<User?>(
+            stream: FirebaseAuth.instance.authStateChanges(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
 
-      routes: {
-        '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegisterScreen(),
-        '/onboarding_current': (context) =>
-            const OnboardingCurrentSkillsScreen(),
-        '/onboarding_new': (context) => const OnboardingNewSkillsScreen(),
-        '/splash': (context) => const SplashScreen(),
-        '/home': (context) => const HomeScreen(),
-        '/matching': (context) => const MatchingScreen(),
-        '/profile': (context) => const ProfileScreen(),
-        '/user_profile': (context) => const UserProfileScreen(),
-        '/edit_profile': (context) => const EditProfileScreen(),
-        '/notifications': (context) => const NotificationsScreen(),
-        '/community': (context) => const CommunityPage(),
-        '/explore': (context) => const MatchingScreen(), // Redirected as requested
-        '/settings': (context) => const SettingsScreen(),
+              // 🟢 JUST AUTH: If logged in, go Home. No more onboarding checks here.
+              if (snapshot.hasData && snapshot.data != null) {
+                return const HomeScreen();
+              }
+
+              return const LoginScreen();
+            },
+          ),
+
+          // 🚪 Routes
+          routes: {
+            '/login': (context) => const LoginScreen(),
+            '/register': (context) => const RegisterScreen(),
+            '/onboarding_current': (context) =>
+                const OnboardingCurrentSkillsScreen(),
+            '/onboarding_new': (context) => const OnboardingNewSkillsScreen(),
+            '/splash': (context) => const SplashScreen(),
+            '/home': (context) => const HomeScreen(),
+            '/matching': (context) => const MatchingScreen(),
+            '/profile': (context) => const ProfileScreen(),
+            '/user_profile': (context) => const UserProfileScreen(),
+            '/edit_profile': (context) => const EditProfileScreen(),
+            '/notifications': (context) => const NotificationsScreen(),
+            '/community': (context) => const CommunityPage(),
+            '/explore': (context) => const MatchingScreen(),
+            '/settings': (context) => const SettingsScreen(),
+          },
+        );
       },
     );
   }

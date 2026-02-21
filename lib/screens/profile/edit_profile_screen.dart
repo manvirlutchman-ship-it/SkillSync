@@ -47,7 +47,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _saveProfile(bool isFirstTime) async {
-    // Dismiss keyboard
+    // 1. Hide keyboard
     FocusManager.instance.primaryFocus?.unfocus();
 
     if (!_formKey.currentState!.validate()) return;
@@ -62,16 +62,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         final String lName = _lastNameController.text.trim();
         final String bio = _bioController.text.trim();
 
-        // 1️⃣ Update Firestore (merge for safety)
+        // 2. Update Firestore
         await DatabaseService().updateUser(user.id, {
           'first_name': fName,
           'last_name': lName,
           'user_bio': bio,
-          'is_onboarded': true,
+          'is_onboarded': true, // Ensure they are marked as finished
           'profile_picture_url': _selectedAvatarPath ?? user.profilePictureUrl,
         });
 
-        // 2️⃣ Update Provider LOCALLY
+        // 3. Update Provider LOCALLY (Stops main.dart from looping)
         userProvider.updateLocalUser(
           user.copyWith(
             firstName: fName,
@@ -83,18 +83,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         );
 
         if (mounted) {
-          if (isFirstTime) {
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              '/home',
-              (route) => false,
-            );
-          } else {
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Profile updated successfully")),
-            );
-          }
+          // 🟢 THE QUICKEST FIX:
+          // Always go to the Profile screen and DELETE all other screens.
+          // This allows the user to see their updates instantly.
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/user_profile',
+            (route) => false,
+          );
         }
       } catch (e) {
         debugPrint("!!! SAVE ERROR: $e !!!");
