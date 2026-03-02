@@ -6,6 +6,9 @@ class BiometricsProvider extends ChangeNotifier {
   static const _key = 'biometrics_lock_enabled';
   final LocalAuthentication _localAuth = LocalAuthentication();
   bool _enabled = false;
+  String? _lastError;
+
+  String? get lastError => _lastError;
 
   bool get isEnabled => _enabled;
 
@@ -28,20 +31,33 @@ class BiometricsProvider extends ChangeNotifier {
 
   Future<bool> canCheckBiometrics() async {
     try {
-      return await _localAuth.canCheckBiometrics || await _localAuth.isDeviceSupported();
-    } catch (_) {
+      final available = await _localAuth.getAvailableBiometrics();
+      // Prefer fingerprint if available; otherwise any biometric counts
+      final hasFingerprint = available.contains(BiometricType.fingerprint);
+      final hasAny = available.isNotEmpty;
+      return hasFingerprint || hasAny;
+    } catch (e, st) {
+      _lastError = 'canCheckBiometrics error: $e';
+      debugPrint('Biometrics canCheck error: $e\n$st');
       return false;
     }
   }
 
   Future<bool> authenticate() async {
+    _lastError = null;
     try {
+      // Allow device credential fallback to improve success rate on some devices.
       final didAuthenticate = await _localAuth.authenticate(
         localizedReason: 'Please authenticate to unlock the app',
-        options: const AuthenticationOptions(biometricOnly: true, stickyAuth: false),
+        options: const AuthenticationOptions(biometricOnly: false, stickyAuth: false, useErrorDialogs: true),
       );
+      if (!didAuthenticate) {
+        _lastError = 'Authentication not completed';
+      }
       return didAuthenticate;
-    } catch (_) {
+    } catch (e, st) {
+      _lastError = e.toString();
+      debugPrint('Biometrics authenticate error: $e\n$st');
       return false;
     }
   }

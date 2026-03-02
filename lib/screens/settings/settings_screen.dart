@@ -116,8 +116,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             SnackBar(content: Text('Biometrics lock enabled'), backgroundColor: colorScheme.primary),
                           );
                         } else {
+                          final err = bm.lastError;
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Authentication failed')),
+                            SnackBar(content: Text(err ?? 'Authentication failed')),
                           );
                         }
                       } else {

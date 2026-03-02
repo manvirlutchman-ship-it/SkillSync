@@ -90,8 +90,7 @@ class SkillSyncApp extends StatelessWidget {
           routes: {
             '/login': (context) => const LoginScreen(),
             '/register': (context) => const RegisterScreen(),
-            '/onboarding_current': (context) =>
-                const OnboardingCurrentSkillsScreen(),
+            '/onboarding_current': (context) => const OnboardingCurrentSkillsScreen(),
             '/onboarding_new': (context) => const OnboardingNewSkillsScreen(),
             '/splash': (context) => const SplashScreen(),
             '/home': (context) => const HomeScreen(),
