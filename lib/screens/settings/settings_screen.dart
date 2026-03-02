@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:skillsync/providers/theme_provider.dart';
 import 'package:skillsync/providers/user_provider.dart';
 import 'package:skillsync/services/auth_service.dart';
+import 'package:skillsync/providers/biometrics_provider.dart';
 import 'package:skillsync/widgets/primary_button.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -71,6 +72,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     value: context.watch<ThemeProvider>().isDarkMode,
                     onChanged: (value) {
                       context.read<ThemeProvider>().toggleTheme(value);
+                    },
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Biometrics Lock Card
+            _buildSettingsCard(
+              colorScheme: colorScheme,
+              isDark: isDark,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Biometrics Lock",
+                    style: TextStyle(
+                      color: colorScheme.onSurface,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Switch.adaptive(
+                    activeColor: colorScheme.primary,
+                    value: context.watch<BiometricsProvider>().isEnabled,
+                    onChanged: (value) async {
+                      final bm = context.read<BiometricsProvider>();
+                      if (value) {
+                        final can = await bm.canCheckBiometrics();
+                        if (!can) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Biometric hardware not available.'), backgroundColor: colorScheme.error),
+                          );
+                          return;
+                        }
+
+                        final ok = await bm.authenticate();
+                        if (ok) {
+                          await bm.setEnabled(true);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Biometrics lock enabled'), backgroundColor: colorScheme.primary),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Authentication failed')),
+                          );
+                        }
+                      } else {
+                        await bm.setEnabled(false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Biometrics lock disabled')),
+                        );
+                      }
                     },
                   ),
                 ],

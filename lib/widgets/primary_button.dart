@@ -44,16 +44,10 @@ class PrimaryButton extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16), // Consistent with your containers
           ),
+          textStyle: const TextStyle(inherit: false, fontWeight: FontWeight.w700, fontSize: 16, letterSpacing: -0.2),
         ),
         onPressed: onPressed,
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 16,
-            letterSpacing: -0.2,
-          ),
-        ),
+        child: Text(label),
       ),
     );
   }
