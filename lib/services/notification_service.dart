@@ -43,9 +43,9 @@ class NotificationService {
         await _flutterLocalNotificationsPlugin.initialize(initSettings);
 
         await _flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-          ?.createNotificationChannel(_channel);
-        }
+            .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+            ?.createNotificationChannel(_channel);
+      }
 
       FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
         final notification = message.notification;
@@ -74,6 +74,8 @@ class NotificationService {
 
     _notificationListener?.cancel();
 
+    final listenStartTime = Timestamp.now();
+
     _notificationListener = FirebaseFirestore.instance
         .collection('Notification')
         .where('user_id',
@@ -83,10 +85,13 @@ class NotificationService {
         .snapshots()
         .listen((snapshot) {
       for (final change in snapshot.docChanges) {
-        if (change.type == DocumentChangeType.added &&
-            !snapshot.metadata.hasPendingWrites) {
+        if (change.type == DocumentChangeType.added) {
           final data = change.doc.data();
           if (data == null) continue;
+
+          // Skip anything that existed before we started listening
+          final createdAt = data['created_at'] as Timestamp?;
+          if (createdAt == null || createdAt.compareTo(listenStartTime) <= 0) continue;
 
           final type = data['type'] as String? ?? '';
           final title = type == 'match' ? 'New Match! 🎉' : 'New Comment';
@@ -111,6 +116,8 @@ class NotificationService {
 
     _messageListener?.cancel();
 
+    final listenStartTime = Timestamp.now();
+
     FirebaseFirestore.instance
         .collection('Conversation')
         .where('participant_ids', arrayContains: uid)
@@ -133,10 +140,13 @@ class NotificationService {
           .snapshots()
           .listen((snapshot) {
         for (final change in snapshot.docChanges) {
-          if (change.type == DocumentChangeType.added &&
-              !snapshot.metadata.hasPendingWrites) {
+          if (change.type == DocumentChangeType.added) {
             final data = change.doc.data();
             if (data == null) continue;
+
+            // Skip anything that existed before we started listening
+            final sentAt = data['sent_at'] as Timestamp?;
+            if (sentAt == null || sentAt.compareTo(listenStartTime) <= 0) continue;
 
             // Skip messages sent by the current user
             final sender = data['sender_id'];
