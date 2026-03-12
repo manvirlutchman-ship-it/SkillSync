@@ -4,6 +4,8 @@ import 'package:skillsync/models/user_model.dart';
 import 'package:skillsync/services/database_service.dart';
 import 'package:skillsync/widgets/avatar_image.dart';
 
+import '../../widgets/scalable_text.dart';
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -70,8 +72,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: ScalableText(
           "View Profile",
+          baseFontSize: 16,
           style: TextStyle(color: colorScheme.onSurface), // 🟢 Theme Aware
         ),
       ),
@@ -89,20 +92,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   Semantics(
                     header: true,
-                    child: Text(
+                    child: ScalableText(
                       displayName,
-                      textAlign: TextAlign.center,
+                      baseFontSize: 30,
                       style: TextStyle(
                         color: colorScheme.onSurface, // 🟢 Theme Aware
-                        fontSize: 30,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
                         fontWeight: FontWeight.w700,
                         letterSpacing: -0.8,
                       ),
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
+                ScalableText(
                     '@${user.username}',
+                    baseFontSize: 16,
                     style: TextStyle(
                       color: colorScheme.secondary, // 🟢 Apple Gray
                       fontSize: 16,
@@ -128,12 +135,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     child: Column(
                       children: [
-                        Text(
+                        ScalableText(
                           user.userBio.isNotEmpty ? user.userBio : "No bio provided.",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: colorScheme.onSurface, // 🟢 Theme Aware
-                            fontSize: 15,
+                          baseFontSize: 15,
                             height: 1.5,
                           ),
                         ),
@@ -193,12 +197,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
+        ScalableText(
           '$count LIKES',
+          baseFontSize: 14,
           style: TextStyle(
             color: colorScheme.onSurface, // 🟢 Theme Aware
             fontWeight: FontWeight.w700,
-            fontSize: 14,
             letterSpacing: 1.1,
           ),
         ),
@@ -274,20 +278,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        ScalableText(
           title,
+          baseFontSize: 11,
           style: TextStyle(
             color: colorScheme.secondary, // 🟢 Theme Aware
-            fontSize: 11,
             fontWeight: FontWeight.w800,
             letterSpacing: 1.2,
           ),
         ),
         const SizedBox(height: 12),
         if (skills.isEmpty)
-          Text(
+          ScalableText(
             "None added.",
-            style: TextStyle(color: colorScheme.secondary, fontSize: 14),
+            baseFontSize: 14,
+            style: TextStyle(color: colorScheme.secondary),
           )
         else
           Wrap(
@@ -323,11 +328,11 @@ class _SkillTile extends StatelessWidget {
           ),
         ],
       ),
-      child: Text(
+      child: ScalableText(
         label,
+        baseFontSize: 14,
         style: TextStyle(
           color: colorScheme.onSurface, // 🟢 Dynamic Text
-          fontSize: 14,
           fontWeight: FontWeight.w600,
         ),
       ),

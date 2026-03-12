@@ -6,6 +6,8 @@ import 'package:skillsync/providers/user_provider.dart';
 import 'package:skillsync/services/database_service.dart';
 import 'package:skillsync/widgets/primary_button.dart';
 
+import '../../widgets/scalable_text.dart';
+
 class OnboardingNewSkillsScreen extends StatefulWidget {
   const OnboardingNewSkillsScreen({super.key});
 
@@ -86,8 +88,9 @@ class _OnboardingNewSkillsScreenState extends State<OnboardingNewSkillsScreen> {
 
                 const SizedBox(height: 16),
 
-                Text(
+                ScalableText(
                   'What do you want to learn?',
+                  baseFontSize: 26,
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
@@ -98,8 +101,9 @@ class _OnboardingNewSkillsScreenState extends State<OnboardingNewSkillsScreen> {
 
                 const SizedBox(height: 8),
 
-                Text(
+                ScalableText(
                   'Select the skills you want to acquire.',
+                  baseFontSize: 14,
                   style: TextStyle(
                     fontSize: 14,
                     color: colorScheme.secondary,
@@ -132,7 +136,7 @@ class _OnboardingNewSkillsScreenState extends State<OnboardingNewSkillsScreen> {
                 // 🧱 Real Skills Grid
                 Expanded(
                   child: filteredSkills.isEmpty 
-                    ? const Center(child: Text("No skills found in this category."))
+                    ? const Center(child: ScalableText("No skills found in this category.", baseFontSize: 14))
                     : GridView.builder(
                         physics: const BouncingScrollPhysics(),
                         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -172,7 +176,7 @@ class _OnboardingNewSkillsScreenState extends State<OnboardingNewSkillsScreen> {
   void _handleConfirm() async {
     if (_selectedSkillIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select at least one skill you want to learn")),
+        const SnackBar(content: ScalableText("Please select at least one skill you want to learn", baseFontSize: 14)),
       );
       return;
     }
@@ -198,7 +202,7 @@ class _OnboardingNewSkillsScreenState extends State<OnboardingNewSkillsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error saving interests: $e")),
+          SnackBar(content: ScalableText("Error saving interests: $e", baseFontSize: 14)),
         );
       }
     } finally {
@@ -215,8 +219,9 @@ class _OnboardingNewSkillsScreenState extends State<OnboardingNewSkillsScreen> {
         color: const Color(0xFFF5F5F7),
         borderRadius: BorderRadius.circular(30),
       ),
-      child: Text(
+      child: ScalableText(
         'STEP 2 OF 3', // 🟢 Updated to 3
+        baseFontSize: 10,
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w800,
@@ -235,8 +240,9 @@ class _OnboardingNewSkillsScreenState extends State<OnboardingNewSkillsScreen> {
         color: isSelected ? colorScheme.primary : const Color(0xFFF5F5F7),
         borderRadius: BorderRadius.circular(30),
       ),
-      child: Text(
+      child: ScalableText(
         label.toUpperCase(),
+        baseFontSize: 11,
         style: TextStyle(
           color: isSelected ? Colors.white : colorScheme.primary,
           fontSize: 11,
@@ -264,8 +270,9 @@ class _OnboardingNewSkillsScreenState extends State<OnboardingNewSkillsScreen> {
           ),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Text(
+        child: ScalableText(
           skill.skillName,
+          baseFontSize: 13,
           textAlign: TextAlign.center,
           style: TextStyle(
             fontWeight: FontWeight.w600,

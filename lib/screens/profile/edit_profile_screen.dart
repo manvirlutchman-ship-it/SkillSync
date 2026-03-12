@@ -4,6 +4,8 @@ import 'package:skillsync/providers/user_provider.dart';
 import 'package:skillsync/services/database_service.dart';
 import 'package:skillsync/widgets/primary_button.dart';
 
+import '../../widgets/scalable_text.dart';
+
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
 
@@ -93,7 +95,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         if (mounted) {
           setState(() => _isSaving = false); // Turn off spinner on error
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Error saving: $e"), backgroundColor: Colors.redAccent),
+            SnackBar(content: ScalableText("Error saving: $e", baseFontSize: 14), backgroundColor: Colors.redAccent),
           );
         }
       }
@@ -122,14 +124,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text("Cancel", style: TextStyle(color: colorScheme.secondary)),
+            child: ScalableText("Cancel", baseFontSize: 14, style: TextStyle(color: colorScheme.secondary)),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               _resetAndNavigateSkills();
             },
-            child: Text("Yes, Update", style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.bold)),
+            child: ScalableText("Yes, Update", baseFontSize: 14, style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -321,7 +323,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(color: colorScheme.outline.withOpacity(0.1), borderRadius: BorderRadius.circular(30)),
-      child: Text('STEP 3 OF 3', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: colorScheme.secondary, letterSpacing: 1.1)),
+      child: ScalableText('STEP 3 OF 3', baseFontSize: 10, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: colorScheme.secondary, letterSpacing: 1.1)),
     );
   }
 
@@ -329,7 +331,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(left: 12),
-      child: Text(title, style: TextStyle(color: colorScheme.secondary, fontSize: 13, fontWeight: FontWeight.w700, letterSpacing: 1.0)),
+      child: ScalableText(title, baseFontSize: 13, style: TextStyle(color: colorScheme.secondary, fontWeight: FontWeight.w700, letterSpacing: 1.0)),
     );
   }
 }

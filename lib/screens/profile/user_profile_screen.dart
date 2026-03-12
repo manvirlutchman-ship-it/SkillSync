@@ -9,6 +9,8 @@ import 'package:skillsync/models/user_model.dart';
 import 'package:skillsync/widgets/avatar_image.dart';
 import 'package:skillsync/widgets/bottom_nav.dart';
 
+import '../../widgets/scalable_text.dart';
+
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
 
@@ -105,24 +107,22 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   const SizedBox(height: 55),
                   Semantics(
                     header: true,
-                    child: Text(
+                    child:ScalableText(
                       displayName,
+                      baseFontSize: 30,
                       style: TextStyle(
                         color: colorScheme.onSurface,
-                        fontSize: 30,
                         fontWeight: FontWeight.w700,
                         letterSpacing: -0.8,
                       ),
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
+                  ScalableText(
                     '@${user.username.split('@')[0]}',
-                    style: TextStyle(
-                      color: colorScheme.secondary,
-                      fontSize: 16,
+                    baseFontSize: 16,
                       fontWeight: FontWeight.w500,
-                    ),
+                    
                   ),
                   const SizedBox(height: 24),
                   _buildBioCard(user, colorScheme, isDark),
@@ -250,12 +250,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       ),
       child: Column(
         children: [
-          Text(
+          ScalableText(
             user.userBio.isNotEmpty ? user.userBio : "No bio available.",
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: colorScheme.onSurface,
-              fontSize: 15,
+            baseFontSize: 15,
               height: 1.5,
               fontWeight: FontWeight.w400,
             ),
@@ -275,12 +273,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   size: 20,
                 ),
                 const SizedBox(width: 8),
-                Text(
+                ScalableText(
                   '${user.likesCount} LIKES',
+                  baseFontSize: 14,
                   style: TextStyle(
                     color: colorScheme.onSurface,
                     fontWeight: FontWeight.w700,
-                    fontSize: 14,
                     letterSpacing: 1.1,
                   ),
                 ),
@@ -331,8 +329,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           padding: const EdgeInsets.only(bottom: 12),
           child: Align(
             alignment: Alignment.centerLeft,
-            child: Text(
+            child: ScalableText(
               title,
+              baseFontSize: 11,
               style: TextStyle(
                 color: colorScheme.secondary,
                 fontSize: 11,
@@ -345,9 +344,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         if (skills.isEmpty)
           Padding(
             padding: const EdgeInsets.only(left: 4),
-            child: Text(
+            child: ScalableText(
               "No skills added yet.",
-              style: TextStyle(color: colorScheme.secondary, fontSize: 14),
+              baseFontSize: 14,
+              style: TextStyle(color: colorScheme.secondary),
             ),
           )
         else
@@ -385,8 +385,9 @@ class _SkillTile extends StatelessWidget {
             ),
           ],
         ),
-        child: Text(
+        child: ScalableText(
           label,
+          baseFontSize: 14,
           style: TextStyle(
             color: colorScheme.onSurface,
             fontSize: 14,

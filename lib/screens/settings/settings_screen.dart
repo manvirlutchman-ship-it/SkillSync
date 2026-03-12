@@ -8,6 +8,9 @@ import 'package:skillsync/providers/biometrics_provider.dart';
 import 'package:skillsync/providers/notifications_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:skillsync/widgets/primary_button.dart';
+import 'package:skillsync/providers/font_size_provider.dart'; // ✅ Add this
+
+import '../../widgets/scalable_text.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -37,7 +40,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: ScalableText(
           "Settings",
           style: TextStyle(
             color: colorScheme.onSurface,
@@ -79,6 +82,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
+            Widget _buildSizeOption(
+  BuildContext context,
+  double scale,
+  String label,
+  ColorScheme colorScheme, {
+  bool isDefault = false,
+}) {
+  final currentScale = context.watch<FontSizeProvider>().scaleFactor;
+  final isSelected = currentScale == scale;
+
+  return GestureDetector(
+    onTap: () => context.read<FontSizeProvider>().setScaleFactor(scale),
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: isSelected ? colorScheme.primary : colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSelected ? colorScheme.primary : colorScheme.outline.withOpacity(0.3),
+          width: isSelected ? 2 : 1,
+        ),
+      ),
+      child: Center(
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
+            fontSize: 12 + (scale * 4), // Visual size hint: 14.2 → 18px
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+    ),
+  );
+},
 
             const SizedBox(height: 12),
 
@@ -89,8 +129,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
+                  ScalableText(
                     "Biometrics Lock",
+                    baseFontSize: 16,
                     style: TextStyle(
                       color: colorScheme.onSurface,
                       fontSize: 16,
@@ -191,6 +232,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             _buildSectionHeader(context, "ACCOUNT MANAGEMENT"),
             const SizedBox(height: 12),
+            const SizedBox(height: 12),
+
+// 🔤 Font Size Selector Card
+_buildSettingsCard(
+  colorScheme: colorScheme,
+  isDark: isDark,
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      ScalableText(
+        "Font Size",
+        baseFontSize: 16,
+        style: TextStyle(
+          color: colorScheme.onSurface,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      const SizedBox(height: 8),
+      Row(
+        children: [
+          // Small
+          _buildSizeOption(context, 0.8, 'A', colorScheme),
+          const SizedBox(width: 8),
+          // Default
+          _buildSizeOption(context, 1.0, 'A', colorScheme, isDefault: true),
+          const SizedBox(width: 8),
+          // Large
+          _buildSizeOption(context, 1.2, 'A', colorScheme),
+          const SizedBox(width: 8),
+          // Extra Large
+          _buildSizeOption(context, 1.5, 'A', colorScheme),
+        ],
+      ),
+    ],
+  ),
+),
+
+const SizedBox(height: 12),
 
             // Danger Zone Card
             Container(

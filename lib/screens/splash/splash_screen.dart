@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:skillsync/theme/app_theme.dart'; // Ensure this path is correct
+import 'package:skillsync/theme/app_theme.dart';
+
+import '../../widgets/scalable_text.dart'; // Ensure this path is correct
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -63,8 +65,9 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
               const SizedBox(height: 24),
               // App Name
-              const Text(
+              const ScalableText(
                 'SkillSync',
+                baseFontSize: 28,
                 style: TextStyle(
                   color: appleSlate,
                   fontSize: 28,

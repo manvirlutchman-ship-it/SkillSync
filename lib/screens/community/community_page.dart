@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:skillsync/providers/user_provider.dart';
+import '../../widgets/scalable_text.dart';
 import '/services/community_service.dart';
 import 'package:skillsync/widgets/bottom_nav.dart';
 
@@ -84,8 +85,9 @@ class _CommunityPageState extends State<CommunityPage> {
 
           if (posts.isEmpty) {
             return Center(
-              child: Text(
+              child:ScalableText(
                 'No posts yet.',
+                baseFontSize: 15,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             );
@@ -126,8 +128,9 @@ class _CommunityPageState extends State<CommunityPage> {
                           Expanded(
                             child: Semantics(
                               label: 'Post author: $authorName',
-                              child: Text(
+                              child: ScalableText(
                                 authorName,
+                                baseFontSize: 16,
                                 style: Theme.of(context)
                                     .textTheme
                                     .titleMedium
@@ -204,8 +207,9 @@ class _CommunityPageState extends State<CommunityPage> {
 
                           Semantics(
                             label: '$likeCount likes',
-                            child: Text(
+                            child: ScalableText(
                               '$likeCount',
+                              baseFontSize: 14,
                               style: Theme.of(context)
                                   .textTheme
                                   .bodyMedium,

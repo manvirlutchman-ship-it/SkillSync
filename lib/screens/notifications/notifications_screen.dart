@@ -9,6 +9,8 @@ import 'package:skillsync/services/database_service.dart';
 import 'package:skillsync/widgets/app_appbar.dart';
 import 'package:skillsync/widgets/bottom_nav.dart';
 
+import '../../widgets/scalable_text.dart';
+
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
 
@@ -70,11 +72,11 @@ class NotificationsScreen extends StatelessWidget {
                 final docs = snapshot.data?.docs ?? [];
                 if (docs.isEmpty) {
                   return Center(
-                    child: Text(
+                    child: ScalableText(
                       "No notifications yet",
                       // Ensure text is readable and announced
                       style: TextStyle(
-                        fontSize: 16, 
+                        basefontSize: 18,
                         color: colorScheme.onSurface.withOpacity(0.6)
                       ),
                     ),
@@ -165,12 +167,14 @@ class _NotificationCard extends StatelessWidget {
           child: ListTile(
             contentPadding: const EdgeInsets.all(16),
             onTap: onTap,
-            title: Text(
+            title:ScalableText(
               title,
+              baseFontSize: 16,
               style: theme.textTheme.titleMedium,
             ),
-            subtitle: Text(
+            subtitle: ScalableText(
               subtitle,
+              baseFontSize: 14,
               style: theme.textTheme.bodySmall,
             ),
             // The visual dot is purely decorative; the status is now in the semantic label.

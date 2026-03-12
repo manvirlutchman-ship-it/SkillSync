@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:skillsync/widgets/app_appbar.dart';
 import 'package:skillsync/widgets/bottom_nav.dart';
 
+import '../../widgets/scalable_text.dart';
+
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
 
@@ -121,8 +123,9 @@ class _CategoryButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           onTap: () {},
           child: Center(
-            child: Text(
+            child: ScalableText(
               label,
+              baseFontSize: 15,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: colorScheme.primary, // Deep Slate
@@ -174,8 +177,9 @@ class _TagChip extends StatelessWidget {
             ? null 
             : Border.all(color: colorScheme.outline.withOpacity(0.5)),
         ),
-        child: Text(
+        child: ScalableText(
           label,
+          baseFontSize: 13,
           style: TextStyle(
             color: isActive ? Colors.white : colorScheme.primary,
             fontSize: 13,

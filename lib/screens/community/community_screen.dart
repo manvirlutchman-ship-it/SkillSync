@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:skillsync/widgets/app_appbar.dart';
 import 'package:skillsync/widgets/bottom_nav.dart';
 
+import '../../widgets/scalable_text.dart';
+
 class CommunityScreen extends StatelessWidget {
   const CommunityScreen({super.key});
 
@@ -69,16 +71,18 @@ class CommunityScreen extends StatelessWidget {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            ScalableText(
                               'alex_dev',
+                              baseFontSize: 14,
                               style: TextStyle(
                                 color: colorScheme.primary,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 14,
                               ),
                             ),
-                            Text(
+                            ScalableText(
                               '2 hours ago',
+                              baseFontSize: 11,
                               style: TextStyle(
                                 color: colorScheme.secondary,
                                 fontSize: 11,
@@ -97,8 +101,9 @@ class CommunityScreen extends StatelessWidget {
                     const SizedBox(height: 12),
 
                     // 📝 Post content
-                    Text(
+                    ScalableText(
                       'Just finished building my first Flutter UI and honestly… this feels powerful. Looking for a mentor in Backend logic! 🚀',
+                      baseFontSize: 15,
                       style: TextStyle(
                         color: colorScheme.primary,
                         fontSize: 15,
@@ -182,8 +187,9 @@ class _TagChip extends StatelessWidget {
         ],
         border: isActive ? null : Border.all(color: colorScheme.outline.withOpacity(0.5)),
       ),
-      child: Text(
+      child: ScalableText(
         label,
+        baseFontSize: 13,
         style: TextStyle(
           color: isActive ? Colors.white : colorScheme.primary,
           fontSize: 13,
@@ -208,9 +214,10 @@ class _PostAction extends StatelessWidget {
       children: [
         Icon(icon, color: colorScheme.secondary, size: 20),
         const SizedBox(width: 4),
-        Text(
+       ScalableText(
           count,
-          style: TextStyle(color: colorScheme.secondary, fontSize: 13, fontWeight: FontWeight.w500),
+          baseFontSize: 13,
+          style: TextStyle(color: colorScheme.secondary, fontWeight: FontWeight.w500),
         ),
       ],
     );

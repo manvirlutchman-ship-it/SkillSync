@@ -12,6 +12,8 @@ import 'package:skillsync/providers/user_provider.dart';
 import 'package:skillsync/screens/chat/chat_screen.dart';
 import 'package:skillsync/widgets/bottom_nav.dart';
 
+import '../../widgets/scalable_text.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -63,8 +65,9 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.only(left: 8.0),
           child: Semantics(
             header: true,
-            child: Text(
+            child: ScalableText(
               'Messages',
+              baseFontSize: 28,
               style: TextStyle(
                 color: colorScheme.onSurface,
                 fontSize: 28,
@@ -237,70 +240,85 @@ class _ChatTile extends StatelessWidget {
                 : partner.fullName;
 
         return Padding(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 20, vertical: 8),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ChatScreen(
-                    chatName: displayName,
-                    conversationId: conversation.id,
-                  ),
-                ),
-              );
-            },
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: colorScheme.surface,
-                borderRadius:
-                    BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(
-                        isDark ? 0.2 : 0.03),
-                    blurRadius: 15,
-                    offset: const Offset(0, 8),
-                  )
-                ],
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor:
-                        theme.scaffoldBackgroundColor,
-                    backgroundImage:
-                        partner.profilePictureUrl
-                                .isNotEmpty
-                            ? NetworkImage(
-                                partner.profilePictureUrl)
-                            : null,
-                    child: partner.profilePictureUrl
-                            .isEmpty
-                        ? Icon(Icons.person_rounded,
-                            color: colorScheme.primary)
-                        : null,
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      displayName,
-                      style: TextStyle(
-                        color: colorScheme.onSurface,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 17,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+  child: InkWell(
+    borderRadius: BorderRadius.circular(16),
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatScreen(
+            chatName: displayName,
+            conversationId: conversation.id,
+          ),
+        ),
+      );
+    },
+    child: Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          )
+        ],
+      ),
+      child: Row(
+        children: [
+          ExcludeSemantics(
+            child: CircleAvatar(
+              radius: 28,
+              backgroundColor: theme.scaffoldBackgroundColor,
+              backgroundImage: partner.profilePictureUrl.isNotEmpty
+                  ? NetworkImage(partner.profilePictureUrl)
+                  : null,
+              child: partner.profilePictureUrl.isEmpty
+                  ? Icon(Icons.person_rounded, color: colorScheme.primary)
+                  : null,
             ),
           ),
-        );
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ScalableText(
+                  displayName,
+                  baseFontSize: 17,
+                  style: TextStyle(
+                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                ScalableText(
+                  "Tap to start chatting",
+                  baseFontSize: 14,
+                  style: TextStyle(
+                    color: colorScheme.secondary,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ExcludeSemantics(
+            child: Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 14,
+              color: colorScheme.secondary.withOpacity(0.5),
+            ),
+          ),
+        ],
+      ),
+    ),
+  ),
+);
       },
     );
   }

@@ -6,6 +6,8 @@ import 'package:skillsync/models/message_model.dart';
 import 'package:skillsync/models/user_model.dart';
 import 'package:skillsync/services/database_service.dart';
 
+import '../../widgets/scalable_text.dart';
+
 class ChatScreen extends StatefulWidget {
   final String chatName;
   final String conversationId;
@@ -82,8 +84,9 @@ class _ChatScreenState extends State<ChatScreen> {
             onPressed: () => Navigator.pop(context),
           ),
         ),
-        title: Text(
+        title: ScalableText(
           widget.chatName,
+          baseFontSize: 17,
           style: TextStyle(
             color: colorScheme.primary, 
             fontWeight: FontWeight.bold, 
@@ -130,8 +133,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   final messages = snapshot.data ?? [];
                   if (messages.isEmpty) {
                     return Center(
-                      child: Text(
+                      child: ScalableText(
                         "No messages yet. Say hi!", 
+                        baseFontSize: 15,
                         style: TextStyle(color: colorScheme.secondary)
                       )
                     );
@@ -196,8 +200,9 @@ class _ChatScreenState extends State<ChatScreen> {
                         )
                       ],
                 ),
-                child: Text(
+                child: ScalableText(
                   msg.content,
+                  baseFontSize: 15,
                   style: TextStyle(
                     // 🟢 THEME FIX: Sent text uses onPrimary, Received uses onSurface
                     color: isMe ? colorScheme.onPrimary : colorScheme.onSurface, 
@@ -209,9 +214,10 @@ class _ChatScreenState extends State<ChatScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 child: ExcludeSemantics(
-                  child: Text(
+                  child: ScalableText(
                     timeString, 
-                    style: TextStyle(color: colorScheme.secondary.withOpacity(0.8), fontSize: 10)
+                    baseFontSize: 10,
+                    style: TextStyle(color: colorScheme.secondary.withOpacity(0.8))
                   )
                 ),
               ),
