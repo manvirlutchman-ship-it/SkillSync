@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AiChatScreen extends StatefulWidget {
   const AiChatScreen({super.key});
@@ -17,9 +18,26 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
   final List<_ChatMessage> _messages = [];
 
-  final String _apiKey = "AIzaSyDYNBduGrovsKSXlxLWoKx3PwUTO6scyck";
+  String? _apiKey;
 
   bool _isLoading = false;
+
+  Future<void> _loadApiKey() async {
+    final doc = await FirebaseFirestore.instance
+        .collection("config")
+        .doc("api_keys")
+        .get();
+
+    setState(() {
+      _apiKey = doc.data()?["gemini_key"];
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadApiKey();
+  }
 
   @override
   void dispose() {
@@ -99,6 +117,11 @@ Future<void> _typeWriterEffect(String fullText) async {
 }
 
   Future<String> _callGemini(String prompt) async {
+
+    if (_apiKey == null) {
+      throw Exception("API key not loaded");
+    }
+
     final url =
         "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$_apiKey";
 
