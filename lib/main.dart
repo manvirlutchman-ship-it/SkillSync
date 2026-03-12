@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:skillsync/core/app_lifecycle_handler.dart';
+import 'package:skillsync/providers/font_size_provider.dart';
 import 'package:skillsync/providers/notifications_provider.dart';
 import 'package:skillsync/services/notification_service.dart';
 
@@ -47,6 +48,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => BiometricsProvider()),
         ChangeNotifierProvider(create: (_) => NotificationsProvider()..loadStatus()),
+        ChangeNotifierProvider(create: (_) => FontSizeProvider()), 
       ],
       child: const SkillSyncApp(),
     ),
