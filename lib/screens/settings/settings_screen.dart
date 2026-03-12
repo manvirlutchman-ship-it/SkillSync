@@ -3,14 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:skillsync/providers/theme_provider.dart';
 import 'package:skillsync/providers/user_provider.dart';
+import 'package:skillsync/providers/font_size_provider.dart'; // Ensure this is imported
 import 'package:skillsync/services/auth_service.dart';
 import 'package:skillsync/providers/biometrics_provider.dart';
-import 'package:skillsync/providers/notifications_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:skillsync/widgets/primary_button.dart';
-import 'package:skillsync/providers/font_size_provider.dart'; // ✅ Add this
-
-import '../../widgets/scalable_text.dart';
+import 'package:skillsync/widgets/scalable_text.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -42,10 +39,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         title: ScalableText(
           "Settings",
+          baseFontSize: 17, // Fixed: Added missing required parameter
           style: TextStyle(
             color: colorScheme.onSurface,
             fontWeight: FontWeight.bold,
-            fontSize: 17,
           ),
         ),
       ),
@@ -82,43 +79,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
-            Widget _buildSizeOption(
-  BuildContext context,
-  double scale,
-  String label,
-  ColorScheme colorScheme, {
-  bool isDefault = false,
-}) {
-  final currentScale = context.watch<FontSizeProvider>().scaleFactor;
-  final isSelected = currentScale == scale;
 
-  return GestureDetector(
-    onTap: () => context.read<FontSizeProvider>().setScaleFactor(scale),
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 150),
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: isSelected ? colorScheme.primary : colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isSelected ? colorScheme.primary : colorScheme.outline.withOpacity(0.3),
-          width: isSelected ? 2 : 1,
-        ),
-      ),
-      child: Center(
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
-            fontSize: 12 + (scale * 4), // Visual size hint: 14.2 → 18px
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-      ),
-    ),
-  );
-},
+            const SizedBox(height: 12),
+
+            // --- FONT SIZE SELECTION CARD ---
+            _buildSettingsCard(
+              colorScheme: colorScheme,
+              isDark: isDark,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Text Size",
+                    style: TextStyle(
+                      color: colorScheme.onSurface,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildSizeOption(context, 0.8, 'A', colorScheme),
+                      _buildSizeOption(context, 1.0, 'A', colorScheme, isDefault: true),
+                      _buildSizeOption(context, 1.2, 'A', colorScheme),
+                      _buildSizeOption(context, 1.5, 'A', colorScheme),
+                    ],
+                  ),
+                ],
+              ),
+            ),
 
             const SizedBox(height: 12),
 
@@ -129,9 +120,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  ScalableText(
+                  Text(
                     "Biometrics Lock",
-                    baseFontSize: 16,
                     style: TextStyle(
                       color: colorScheme.onSurface,
                       fontSize: 16,
@@ -147,7 +137,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         final can = await bm.canCheckBiometrics();
                         if (!can) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Biometric hardware not available.'), backgroundColor: colorScheme.error),
+                            SnackBar(content: const Text('Biometric hardware not available.'), backgroundColor: colorScheme.error),
                           );
                           return;
                         }
@@ -156,7 +146,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         if (ok) {
                           await bm.setEnabled(true);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Biometrics lock enabled'), backgroundColor: colorScheme.primary),
+                            SnackBar(content: const Text('Biometrics lock enabled'), backgroundColor: colorScheme.primary),
                           );
                         } else {
                           final err = bm.lastError;
@@ -167,59 +157,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       } else {
                         await bm.setEnabled(false);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Biometrics lock disabled')),
-                        );
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // Push Notifications Card
-            _buildSettingsCard(
-              colorScheme: colorScheme,
-              isDark: isDark,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Push Notifications",
-                    style: TextStyle(
-                      color: colorScheme.onSurface,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Switch.adaptive(
-                    activeColor: colorScheme.primary,
-                    value: context.watch<NotificationsProvider>().isEnabled,
-                    onChanged: (value) async {
-                      final provider = context.read<NotificationsProvider>();
-                      if (value) {
-                        final status = await provider.requestPermission();
-                        if (!provider.isEnabled) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text('Notifications disabled. Open settings to enable.'),
-                              action: SnackBarAction(
-                                label: 'Settings',
-                                onPressed: () => openAppSettings(),
-                              ),
-                            ),
-                          );
-                        }
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text('To disable notifications, open device Settings.'),
-                            action: SnackBarAction(
-                              label: 'Settings',
-                              onPressed: () => openAppSettings(),
-                            ),
-                          ),
+                          const SnackBar(content: Text('Biometrics lock disabled')),
                         );
                       }
                     },
@@ -232,44 +170,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             _buildSectionHeader(context, "ACCOUNT MANAGEMENT"),
             const SizedBox(height: 12),
-            const SizedBox(height: 12),
-
-// 🔤 Font Size Selector Card
-_buildSettingsCard(
-  colorScheme: colorScheme,
-  isDark: isDark,
-  child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      ScalableText(
-        "Font Size",
-        baseFontSize: 16,
-        style: TextStyle(
-          color: colorScheme.onSurface,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      const SizedBox(height: 8),
-      Row(
-        children: [
-          // Small
-          _buildSizeOption(context, 0.8, 'A', colorScheme),
-          const SizedBox(width: 8),
-          // Default
-          _buildSizeOption(context, 1.0, 'A', colorScheme, isDefault: true),
-          const SizedBox(width: 8),
-          // Large
-          _buildSizeOption(context, 1.2, 'A', colorScheme),
-          const SizedBox(width: 8),
-          // Extra Large
-          _buildSizeOption(context, 1.5, 'A', colorScheme),
-        ],
-      ),
-    ],
-  ),
-),
-
-const SizedBox(height: 12),
 
             // Danger Zone Card
             Container(
@@ -322,7 +222,53 @@ const SizedBox(height: 12),
     );
   }
 
-  // --- UI HELPERS (Refactored for Theming) ---
+  // --- UI HELPERS (Properly placed outside build() method) ---
+
+  Widget _buildSizeOption(
+    BuildContext context, 
+    double factor, 
+    String label, 
+    ColorScheme colorScheme, 
+    {bool isDefault = false}
+  ) {
+    final currentFactor = context.watch<FontSizeProvider>().scaleFactor;
+    final bool isSelected = currentFactor == factor;
+
+    return GestureDetector(
+      onTap: () => context.read<FontSizeProvider>().setScaleFactor(factor),
+      child: Column(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isSelected ? colorScheme.primary : colorScheme.surfaceVariant.withOpacity(0.3),
+              border: Border.all(
+                color: isSelected ? colorScheme.primary : colorScheme.outline.withOpacity(0.2),
+                width: 2,
+              ),
+            ),
+            child: Center(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14 * factor,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          if (isDefault)
+            Text("Default", style: TextStyle(fontSize: 10, color: colorScheme.secondary))
+          else
+            const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
 
   Widget _buildSectionHeader(BuildContext context, String title) {
     return Padding(
@@ -346,7 +292,7 @@ const SizedBox(height: 12),
   }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
@@ -362,7 +308,7 @@ const SizedBox(height: 12),
     );
   }
 
-  // --- LOGIC (Refactored for Theming & Robustness) ---
+  // --- LOGIC ---
 
   void _confirmDeleteAccount() {
     final colorScheme = Theme.of(context).colorScheme;

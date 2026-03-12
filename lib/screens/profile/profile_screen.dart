@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:skillsync/models/user_model.dart';
 import 'package:skillsync/services/database_service.dart';
 import 'package:skillsync/widgets/avatar_image.dart';
-
 import '../../widgets/scalable_text.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -67,7 +66,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           tooltip: "Back",
           icon: Icon(
             Icons.arrow_back_ios_new_rounded,
-            color: colorScheme.primary, // 🟢 Theme primary
+            color: colorScheme.primary,
             size: 20,
           ),
           onPressed: () => Navigator.pop(context),
@@ -75,7 +74,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: ScalableText(
           "View Profile",
           baseFontSize: 16,
-          style: TextStyle(color: colorScheme.onSurface), // 🟢 Theme Aware
+          style: TextStyle(color: colorScheme.onSurface),
         ),
       ),
       extendBodyBehindAppBar: true,
@@ -89,45 +88,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 55),
-
                   Semantics(
                     header: true,
                     child: ScalableText(
                       displayName,
                       baseFontSize: 30,
                       style: TextStyle(
-                        color: colorScheme.onSurface, // 🟢 Theme Aware
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
+                        color: colorScheme.onSurface,
                         fontWeight: FontWeight.w700,
                         letterSpacing: -0.8,
                       ),
                     ),
                   ),
                   const SizedBox(height: 4),
-                ScalableText(
+                  ScalableText(
                     '@${user.username}',
                     baseFontSize: 16,
                     style: TextStyle(
-                      color: colorScheme.secondary, // 🟢 Apple Gray
-                      fontSize: 16,
+                      color: colorScheme.secondary,
                     ),
                   ),
 
                   const SizedBox(height: 24),
 
-                  // Bio Card
+                  // --- BIO CARD (FIXED SYNTAX HERE) ---
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: colorScheme.surface, // 🟢 Dynamic Surface
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(isDark ? 0.2 : 0.03), // 🟢 Dynamic Shadow
+                          color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
@@ -138,13 +131,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ScalableText(
                           user.userBio.isNotEmpty ? user.userBio : "No bio provided.",
                           baseFontSize: 15,
-                            height: 1.5,
-                          ),
+                          height: 1.5, // Works now because of Step 1
                         ),
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 20),
                           child: Divider(
-                            color: colorScheme.outline.withOpacity(0.2), // 🟢 Theme Aware
+                            color: colorScheme.outline.withOpacity(0.2),
                             thickness: 1.5,
                           ),
                         ),
@@ -201,7 +193,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           '$count LIKES',
           baseFontSize: 14,
           style: TextStyle(
-            color: colorScheme.onSurface, // 🟢 Theme Aware
+            color: colorScheme.onSurface,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.1,
           ),
@@ -219,7 +211,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             icon: Icon(
               isLiked ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
-              color: isLiked ? Colors.redAccent : colorScheme.onSurface, // 🟢 Theme Aware
+              color: isLiked ? Colors.redAccent : colorScheme.onSurface,
             ),
             onPressed: isLiked || _myId == user.id
                 ? null
@@ -260,7 +252,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Container(
               padding: const EdgeInsets.all(5),
               decoration: BoxDecoration(
-                color: theme.scaffoldBackgroundColor, // 🟢 Seamless merge
+                color: theme.scaffoldBackgroundColor,
                 shape: BoxShape.circle,
               ),
               child: AvatarImage(
@@ -282,7 +274,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title,
           baseFontSize: 11,
           style: TextStyle(
-            color: colorScheme.secondary, // 🟢 Theme Aware
+            color: colorScheme.secondary,
             fontWeight: FontWeight.w800,
             letterSpacing: 1.2,
           ),
@@ -311,14 +303,13 @@ class _SkillTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
       decoration: BoxDecoration(
-        color: colorScheme.surface, // 🟢 Dynamic Tile
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
@@ -332,7 +323,7 @@ class _SkillTile extends StatelessWidget {
         label,
         baseFontSize: 14,
         style: TextStyle(
-          color: colorScheme.onSurface, // 🟢 Dynamic Text
+          color: colorScheme.onSurface,
           fontWeight: FontWeight.w600,
         ),
       ),

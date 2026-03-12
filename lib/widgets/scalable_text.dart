@@ -8,7 +8,10 @@ class ScalableText extends StatelessWidget {
   final Color? color;
   final FontWeight? fontWeight;
   final TextAlign? textAlign;
-  final TextStyle? style; // Optional: merge with scaled style
+  final TextStyle? style;
+  final int? maxLines;
+  final TextOverflow? overflow;
+  final double? height;
 
   const ScalableText(
     this.data, {
@@ -17,6 +20,9 @@ class ScalableText extends StatelessWidget {
     this.fontWeight,
     this.textAlign,
     this.style,
+    this.maxLines,
+    this.overflow,
+    this.height,
     super.key,
   });
 
@@ -28,10 +34,13 @@ class ScalableText extends StatelessWidget {
     return Text(
       data,
       textAlign: textAlign,
+      maxLines: maxLines,
+      overflow: overflow,
       style: (style ?? const TextStyle()).copyWith(
         fontSize: scaledSize,
         color: color,
         fontWeight: fontWeight,
+        height: height,
       ),
     );
   }

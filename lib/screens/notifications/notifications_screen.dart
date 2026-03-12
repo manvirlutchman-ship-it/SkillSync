@@ -74,10 +74,9 @@ class NotificationsScreen extends StatelessWidget {
                   return Center(
                     child: ScalableText(
                       "No notifications yet",
-                      // Ensure text is readable and announced
+                      baseFontSize: 18, // Added required parameter
                       style: TextStyle(
-                        basefontSize: 18,
-                        color: colorScheme.onSurface.withOpacity(0.6)
+                        color: colorScheme.onSurface.withOpacity(0.6),
                       ),
                     ),
                   );

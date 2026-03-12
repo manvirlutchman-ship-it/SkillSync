@@ -4,11 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:skillsync/providers/user_provider.dart';
 import 'package:skillsync/services/database_service.dart';
 import 'package:skillsync/services/auth_service.dart';
-import 'package:skillsync/models/userskill_model.dart';
 import 'package:skillsync/models/user_model.dart';
 import 'package:skillsync/widgets/avatar_image.dart';
 import 'package:skillsync/widgets/bottom_nav.dart';
-
 import '../../widgets/scalable_text.dart';
 
 class UserProfileScreen extends StatefulWidget {
@@ -66,7 +64,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         elevation: 0,
         automaticallyImplyLeading: false,
         actions: [
-          /// EDIT PROFILE
           _buildAppBarAction(
             icon: Icons.edit_note_rounded,
             size: 26,
@@ -74,8 +71,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             onPressed: () => Navigator.pushNamed(context, '/edit_profile'),
             colorScheme: colorScheme,
           ),
-
-          /// SETTINGS
           _buildAppBarAction(
             icon: Icons.settings_rounded,
             size: 22,
@@ -83,8 +78,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             onPressed: () => Navigator.pushNamed(context, '/settings'),
             colorScheme: colorScheme,
           ),
-
-          /// LOGOUT
           _buildAppBarAction(
             icon: Icons.logout_rounded,
             size: 22,
@@ -107,7 +100,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   const SizedBox(height: 55),
                   Semantics(
                     header: true,
-                    child:ScalableText(
+                    child: ScalableText(
                       displayName,
                       baseFontSize: 30,
                       style: TextStyle(
@@ -121,8 +114,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   ScalableText(
                     '@${user.username.split('@')[0]}',
                     baseFontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    
+                    fontWeight: FontWeight.w500,
+                    color: colorScheme.secondary,
                   ),
                   const SizedBox(height: 24),
                   _buildBioCard(user, colorScheme, isDark),
@@ -146,7 +139,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  /// Helper to build consistent themed circular actions for the transparent AppBar
   Widget _buildAppBarAction({
     required IconData icon,
     required double size,
@@ -254,13 +246,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             user.userBio.isNotEmpty ? user.userBio : "No bio available.",
             textAlign: TextAlign.center,
             baseFontSize: 15,
-              height: 1.5,
-              fontWeight: FontWeight.w400,
-            ),
+            height: 1.5,
+            fontWeight: FontWeight.w400,
+            color: colorScheme.onSurface,
           ),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 20),
-            child: Divider(color: colorScheme.outline.withOpacity(0.2), thickness: 1.5),
+            child: Divider(
+              color: colorScheme.outline.withOpacity(0.2), 
+              thickness: 1.5,
+            ),
           ),
           Semantics(
             label: '${user.likesCount} total likes received',
@@ -334,7 +329,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               baseFontSize: 11,
               style: TextStyle(
                 color: colorScheme.secondary,
-                fontSize: 11,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.2,
               ),
@@ -347,7 +341,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             child: ScalableText(
               "No skills added yet.",
               baseFontSize: 14,
-              style: TextStyle(color: colorScheme.secondary),
+              color: colorScheme.secondary,
             ),
           )
         else
@@ -388,11 +382,8 @@ class _SkillTile extends StatelessWidget {
         child: ScalableText(
           label,
           baseFontSize: 14,
-          style: TextStyle(
-            color: colorScheme.onSurface,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
+          fontWeight: FontWeight.w600,
+          color: colorScheme.onSurface,
         ),
       ),
     );
