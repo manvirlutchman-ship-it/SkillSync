@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AiChatScreen extends StatefulWidget {
   const AiChatScreen({super.key});
@@ -19,8 +20,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
   final List<_ChatMessage> _messages = [];
 
   String? _apiKey;
-
   bool _isLoading = false;
+
+  String get _userId => FirebaseAuth.instance.currentUser!.uid;
 
   Future<void> _loadApiKey() async {
     final doc = await FirebaseFirestore.instance
@@ -33,10 +35,47 @@ class _AiChatScreenState extends State<AiChatScreen> {
     });
   }
 
+  Future<void> _saveMessage(String text, bool isUser) async {
+    await FirebaseFirestore.instance
+        .collection("ai_chats")
+        .doc(_userId)
+        .collection("messages")
+        .add({
+      "text": text,
+      "isUser": isUser,
+      "timestamp": FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> _loadMessages() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection("ai_chats")
+        .doc(_userId)
+        .collection("messages")
+        .orderBy("timestamp")
+        .get();
+
+    final loaded = snapshot.docs.map((doc) {
+      final data = doc.data();
+      return _ChatMessage(
+        text: data["text"] ?? "",
+        isUser: data["isUser"] ?? false,
+      );
+    }).toList();
+
+    setState(() {
+      _messages.clear();
+      _messages.addAll(loaded);
+    });
+
+    _scrollToBottom();
+  }
+
   @override
   void initState() {
     super.initState();
     _loadApiKey();
+    _loadMessages();
   }
 
   @override
@@ -67,6 +106,8 @@ class _AiChatScreenState extends State<AiChatScreen> {
       _isLoading = true;
     });
 
+    await _saveMessage(text, true);
+
     _controller.clear();
     _scrollToBottom();
 
@@ -93,31 +134,31 @@ class _AiChatScreenState extends State<AiChatScreen> {
     _scrollToBottom();
   }
 
-Future<void> _typeWriterEffect(String fullText) async {
-  int index = _messages.length - 1;
+  Future<void> _typeWriterEffect(String fullText) async {
+    int index = _messages.length - 1;
 
-  const int charsPerTick = 12; // how many characters appear each frame
-  const Duration delay = Duration(milliseconds: 10);
+    const int charsPerTick = 12;
+    const Duration delay = Duration(milliseconds: 10);
 
-  int current = 0;
+    int current = 0;
 
-  while (current < fullText.length) {
-    await Future.delayed(delay);
+    while (current < fullText.length) {
+      await Future.delayed(delay);
 
-    final next = (current + charsPerTick).clamp(0, fullText.length);
+      final next = (current + charsPerTick).clamp(0, fullText.length);
 
-    setState(() {
-      _messages[index].text = fullText.substring(0, next);
-    });
+      setState(() {
+        _messages[index].text = fullText.substring(0, next);
+      });
 
-    current = next;
+      current = next;
+      _scrollToBottom();
+    }
 
-    _scrollToBottom();
+    await _saveMessage(fullText, false);
   }
-}
 
   Future<String> _callGemini(String prompt) async {
-
     if (_apiKey == null) {
       throw Exception("API key not loaded");
     }
@@ -188,7 +229,6 @@ Future<void> _typeWriterEffect(String fullText) async {
                     },
                   ),
           ),
-
           if (_isLoading)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -211,7 +251,6 @@ Future<void> _typeWriterEffect(String fullText) async {
                 ],
               ),
             ),
-
           _buildInputBar(theme, colorScheme),
         ],
       ),
@@ -301,7 +340,7 @@ Future<void> _typeWriterEffect(String fullText) async {
               textInputAction: TextInputAction.send,
               onSubmitted: (_) => _sendMessage(),
               decoration: InputDecoration(
-                hintText: "Ask Gemini...",
+                hintText: "Ask SkillBot...",
                 filled: true,
                 fillColor: theme.scaffoldBackgroundColor,
                 border: OutlineInputBorder(
